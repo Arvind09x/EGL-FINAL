@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+
+# Environment
+.env
+
+# Protect Student PII (Names, Phone numbers, Emails)
+data/EGL.csv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Tailwind
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

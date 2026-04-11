@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}ESHTO — Board Games at Ashoka{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up">
+  <!-- Hero -->
+  <section class="text-center py-16 space-y-8">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-900/50 border border-brand-500/30 text-brand-300 text-sm font-medium">
+      <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+      {% if next_slot %}Next session: {{ next_slot.date }} at {{ next_slot.start_time }}{% else %}Check back for upcoming sessions{% endif %}
+    </div>
+
+    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight">
+      <span class="gradient-text">Board Games</span><br>
+      <span class="text-white">at Ashoka</span>
+    </h1>
+
+    <p class="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+      Browse {{ game_count }} titles in the ESHTO library. Reserve a game for your next session, pick it up, and return it — all managed right here.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+      <a href="{% url 'core:available_games' %}" class="px-8 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-xl btn-glow hover:from-brand-500 hover:to-brand-400 transition-all">
+        Browse Available Games →
+      </a>
+      <a href="{% url 'core:all_games' %}" class="px-8 py-3.5 rounded-xl text-base font-semibold bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white transition-all">
+        View Full Catalog
+      </a>
+    </div>
+  </section>
+
+  <!-- Info cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-6 py-12">
+    <div class="glass rounded-2xl p-6 space-y-3 card-hover">
+      <div class="w-12 h-12 rounded-xl bg-brand-600/20 flex items-center justify-center text-2xl">📅</div>
+      <h3 class="text-lg font-semibold text-white">Sessions</h3>
+      <p class="text-gray-400 text-sm leading-relaxed">Tuesday & Friday, 6:30 – 7:30 PM IST. Booking opens every Monday at 8 AM.</p>
+    </div>
+    <div class="glass rounded-2xl p-6 space-y-3 card-hover">
+      <div class="w-12 h-12 rounded-xl bg-emerald-600/20 flex items-center justify-center text-2xl">📍</div>
+      <h3 class="text-lg font-semibold text-white">Pickup Location</h3>
+      <p class="text-gray-400 text-sm leading-relaxed">{{ location }}</p>
+    </div>
+    <div class="glass rounded-2xl p-6 space-y-3 card-hover">
+      <div class="w-12 h-12 rounded-xl bg-amber-600/20 flex items-center justify-center text-2xl">🎯</div>
+      <h3 class="text-lg font-semibold text-white">How It Works</h3>
+      <p class="text-gray-400 text-sm leading-relaxed">Sign in with your Ashoka email → Reserve a game → Pick up at the session → Return by the next slot.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

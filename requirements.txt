@@ -1,0 +1,20 @@
+# Core
+Django>=5.1,<5.2
+gunicorn>=22.0
+
+# Database
+psycopg[binary]>=3.1
+dj-database-url>=2.1
+
+# Auth
+django-allauth[socialaccount]>=65.0
+
+# Frontend integration
+django-htmx>=1.19
+
+# Environment
+python-dotenv>=1.0
+
+# Utilities
+django-extensions>=3.2
+Pillow>=10.0

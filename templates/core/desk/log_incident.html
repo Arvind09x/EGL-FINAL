@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Log Incident — ESHTO{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8 max-w-2xl mx-auto">
+  <div class="flex items-center gap-3">
+    <a href="{% url 'core:member_desk' %}" class="text-gray-400 hover:text-white transition-colors">← Desk</a>
+    <h1 class="text-3xl font-bold text-white">Log Incident</h1>
+  </div>
+
+  <div class="glass rounded-2xl p-5">
+    <p class="text-gray-300">
+      <strong class="text-white">{{ checkout.borrower.email }}</strong> —
+      {{ checkout.game_copy.game_title.name }} [{{ checkout.game_copy.copy_label }}]
+    </p>
+    <p class="text-sm text-gray-400 mt-1">Replacement cost: ₹{{ checkout.game_copy.game_title.replacement_cost }}</p>
+  </div>
+
+  <form method="post" class="glass rounded-2xl p-6 space-y-6">
+    {% csrf_token %}
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+      <textarea name="description" rows="4" required placeholder="Describe the damage or missing components..."
+                class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all resize-none"></textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Damage Fee (₹, optional)</label>
+      <input type="number" name="damage_fee" step="0.01" min="0" placeholder="0.00"
+             class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all">
+      <p class="text-xs text-gray-500 mt-1">A warning will appear if this exceeds the replacement cost (₹{{ checkout.game_copy.game_title.replacement_cost }}).</p>
+    </div>
+
+    <button type="submit" class="w-full px-6 py-3.5 rounded-xl text-base font-semibold bg-amber-600/80 text-white shadow-lg hover:bg-amber-500 transition-all">
+      Log Incident
+    </button>
+  </form>
+</div>
+{% endblock %}

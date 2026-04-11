@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}My Reservations — ESHTO{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8">
+  <h1 class="text-3xl font-bold text-white">My Reservations</h1>
+
+  {% if restriction %}
+  <div class="glass rounded-2xl p-5 border-red-500/30 border bg-red-900/20">
+    <p class="text-red-300 font-semibold">⚠ You are restricted: {{ restriction.reason }}</p>
+    <p class="text-red-400 text-sm mt-1">Until {{ restriction.end_date|default:"permanent" }}. You cannot make new reservations.</p>
+  </div>
+  {% endif %}
+
+  <div class="glass rounded-xl p-4 flex items-start gap-3 text-sm">
+    <span class="text-lg">📍</span>
+    <span class="text-gray-400">{{ location }}</span>
+  </div>
+
+  <div class="space-y-4">
+    {% for res in reservations %}
+    <div class="glass rounded-2xl p-6 card-hover" id="reservation-{{ res.pk }}">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <h3 class="text-lg font-semibold text-white">{{ res.game_copy.game_title.name }}</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
+              {% if res.status == 'confirmed' %}bg-emerald-900/50 text-emerald-300 border border-emerald-500/30
+              {% elif res.status == 'cancelled' %}bg-gray-800 text-gray-400 border border-gray-600/30
+              {% elif res.status == 'no_show' %}bg-red-900/50 text-red-300 border border-red-500/30
+              {% else %}bg-brand-900/50 text-brand-300 border border-brand-500/30{% endif %}">
+              {{ res.get_status_display }}
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+            <span>Copy: {{ res.game_copy.copy_label }}</span>
+            <span>Pickup: {{ res.pickup_slot.date|date:"D, M j" }} {{ res.pickup_slot.start_time|time:"g:i A" }}</span>
+            <span>Return by: {{ res.return_slot.date|date:"D, M j" }} {{ res.return_slot.start_time|time:"g:i A" }}</span>
+          </div>
+        </div>
+
+        {% if res.status == 'confirmed' %}
+        <div id="cancel-{{ res.pk }}">
+          <form method="post" action="{% url 'core:cancel_reservation' res.pk %}"
+                hx-post="{% url 'core:cancel_reservation' res.pk %}"
+                hx-target="#cancel-{{ res.pk }}"
+                hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium bg-red-900/30 text-red-300 border border-red-500/30 hover:bg-red-900/50 transition-all">
+              Cancel
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 text-gray-500">
+      <span class="text-5xl block mb-4">📋</span>
+      <p>No reservations yet.</p>
+      <a href="{% url 'core:available_games' %}" class="text-brand-400 hover:text-brand-300 mt-2 inline-block">Browse available games →</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

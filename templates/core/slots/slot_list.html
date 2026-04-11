@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Slot Management — ESHTO{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-bold text-white">Slot Management</h1>
+    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-gray-300 hover:bg-white/20 transition-all">← Back to Desk</a>
+  </div>
+
+  <div class="glass rounded-2xl overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-white/10">
+          <th class="text-left p-4 text-gray-400 font-medium">Date</th>
+          <th class="text-left p-4 text-gray-400 font-medium">Day</th>
+          <th class="text-left p-4 text-gray-400 font-medium">Time</th>
+          <th class="text-left p-4 text-gray-400 font-medium">Status</th>
+          <th class="text-right p-4 text-gray-400 font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        {% for slot in slots %}
+        <tr class="hover:bg-white/5 transition-colors" id="slot-{{ slot.pk }}">
+          <td class="p-4 text-white font-medium">{{ slot.date|date:"M j, Y" }}</td>
+          <td class="p-4 text-gray-400">{{ slot.date|date:"l" }}</td>
+          <td class="p-4 text-gray-300">{{ slot.start_time|time:"g:i A" }} – {{ slot.end_time|time:"g:i A" }}</td>
+          <td class="p-4" id="status-{{ slot.pk }}">
+            {% if slot.is_cancelled %}
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-900/50 text-red-300 border border-red-500/30">Cancelled</span>
+            {% else %}
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-900/50 text-emerald-300 border border-emerald-500/30">Active</span>
+            {% endif %}
+          </td>
+          <td class="p-4 text-right">
+            {% if not slot.is_cancelled %}
+            <form method="post" action="{% url 'core:cancel_slot' slot.pk %}"
+                  hx-post="{% url 'core:cancel_slot' slot.pk %}"
+                  hx-target="#status-{{ slot.pk }}" hx-swap="innerHTML"
+                  class="inline">
+              {% csrf_token %}
+              <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-900/30 text-red-300 border border-red-500/30 hover:bg-red-900/50 transition-all">Cancel Slot</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="p-8 text-center text-gray-500">No upcoming slots. Run the <code class="text-brand-300">generate_slots</code> command to create them.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

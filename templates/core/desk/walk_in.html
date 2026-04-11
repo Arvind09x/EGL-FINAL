@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Walk-in Checkout — ESHTO{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8 max-w-2xl mx-auto">
+  <div class="flex items-center gap-3">
+    <a href="{% url 'core:member_desk' %}" class="text-gray-400 hover:text-white transition-colors">← Desk</a>
+    <h1 class="text-3xl font-bold text-white">Walk-in Checkout</h1>
+  </div>
+
+  <form method="post" class="glass rounded-2xl p-6 space-y-6">
+    {% csrf_token %}
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Borrower Email</label>
+      <input type="email" name="borrower_email" required placeholder="user@ashoka.edu.in"
+             class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Borrower Contact Number (Required)</label>
+      <input type="text" name="phone_number" required placeholder="e.g. 9876543210"
+             class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Available Copy</label>
+      <select name="copy_id" required class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all">
+        {% for copy in available_copies %}
+          <option value="{{ copy.pk }}">{{ copy.game_title.name }} [{{ copy.copy_label }}] — {{ copy.get_condition_display }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Condition Notes</label>
+      <textarea name="condition_notes" rows="3" placeholder="Any notes about the game condition..."
+                class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all resize-none"></textarea>
+    </div>
+
+    <button type="submit" class="w-full px-6 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-lg btn-glow hover:from-brand-500 hover:to-brand-400 transition-all">
+      Create Walk-in Checkout
+    </button>
+  </form>
+</div>
+{% endblock %}
