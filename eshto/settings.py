@@ -168,4 +168,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # WARNING: Clear this list before production deployment!
 TEST_SUPERUSERS = [
     "arvindsrinivas.sudarsan_ug2023@ashoka.edu.in",
+    "arjun.singh_ug2023@ashoka.edu.in"
 ]

@@ -96,13 +96,32 @@ def game_detail(request, pk):
     # Check which slots have open booking windows
     slots_with_status = []
     for slot in upcoming_slots:
-        is_open = services.is_booking_window_open(slot) or request.user.is_staff
+        is_open = services.is_booking_window_open(slot) or (
+            request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+        )
         slots_with_status.append({"slot": slot, "is_open": is_open})
+
+    # Build set of (copy_id, slot_id) pairs that are already reserved
+    reserved_pairs = set()
+    for slot in upcoming_slots:
+        reserved_copies = Reservation.objects.filter(
+            pickup_slot=slot,
+            status=Reservation.Status.CONFIRMED,
+            game_copy__game_title=game,
+        ).values_list("game_copy_id", flat=True)
+        for copy_id in reserved_copies:
+            reserved_pairs.add((copy_id, slot.pk))
+
+    user_has_phone = (
+        request.user.is_authenticated and bool(request.user.phone)
+    )
 
     return render(request, "core/game_detail.html", {
         "game": game,
         "slots_with_status": slots_with_status,
         "location": PICKUP_LOCATION,
+        "reserved_pairs": reserved_pairs,
+        "user_has_phone": user_has_phone,
     })
 
 
@@ -159,8 +178,8 @@ def create_reservation(request, copy_id, slot_id):
     slot = get_object_or_404(WeeklySlot, pk=slot_id)
 
     phone = request.POST.get("phone_number")
-    if phone and not request.user.phone_number:
-        request.user.phone_number = phone.strip()
+    if phone and not request.user.phone:
+        request.user.phone = phone.strip()
         request.user.save()
 
     reservation, error = services.create_reservation(request.user, copy, slot)
@@ -328,12 +347,12 @@ def desk_walk_in(request):
             messages.error(request, f"No user found with email {borrower_email}.")
             return redirect("core:desk_walk_in")
 
-        if phone_number and not borrower.phone_number:
-            borrower.phone_number = phone_number
+        if phone_number and not borrower.phone:
+            borrower.phone = phone_number
             borrower.save()
 
         # Check if phone number is present now
-        if not borrower.phone_number:
+        if not borrower.phone:
              messages.error(request, "A contact number is mandatory to perform a walk-in checkout.")
              return redirect("core:desk_walk_in")
 

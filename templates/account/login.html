@@ -1,33 +1,33 @@
 {% extends "base.html" %}
 {% load socialaccount %}
 
-{% block title %}Sign In — ESHTO{% endblock %}
+{% block title %}Sign In — Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] space-y-8">
   
   <div class="text-center space-y-4">
-    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-600/20 text-brand-300 text-3xl shadow-[0_0_30px_rgba(var(--color-brand-500),0.3)] mb-2">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-50 text-3xl shadow-lg shadow-red-500/10 mb-2">
       🎲
     </div>
-    <h1 class="text-4xl font-extrabold text-white tracking-tight">Welcome to ESHTO</h1>
-    <p class="text-gray-400">Ashoka's student-run board game library</p>
+    <h1 class="text-4xl font-extrabold text-surface-900 tracking-tight">Welcome to Eeshto</h1>
+    <p class="text-surface-500">Ashoka's student-run board game library</p>
   </div>
 
   <div class="glass w-full rounded-3xl p-8 card-hover relative overflow-hidden">
     <!-- Decorative background elements -->
-    <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-brand-500/20 blur-2xl"></div>
-    <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-emerald-500/20 blur-2xl"></div>
+    <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-red-500/10 blur-2xl"></div>
+    <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-red-400/10 blur-2xl"></div>
 
     <div class="relative space-y-6">
       <div class="text-center">
-        <h2 class="text-xl font-semibold text-white">Sign In required</h2>
-        <p class="text-sm text-gray-400 mt-1">Please use your official university email.</p>
+        <h2 class="text-xl font-semibold text-surface-900">Sign In required</h2>
+        <p class="text-sm text-surface-500 mt-1">Please use your official university email.</p>
       </div>
 
       <form method="post" action="{% provider_login_url 'google' %}">
         {% csrf_token %}
-        <button type="submit" class="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-base font-semibold bg-white text-gray-900 shadow-xl hover:bg-gray-100 transition-all transform hover:scale-[1.02] hover:shadow-2xl">
+        <button type="submit" class="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-base font-semibold bg-white text-surface-800 shadow-lg border border-surface-200 hover:bg-surface-50 transition-all transform hover:scale-[1.02] hover:shadow-xl">
           <svg class="w-5 h-5" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -38,10 +38,10 @@
         </button>
       </form>
       
-      <div class="pt-4 border-t border-white/10 text-center">
-        <p class="text-xs text-gray-500 leading-relaxed">
-          By signing in, you agree to ESHTO's borrowing terms and policies.<br>
-          For issues, contact <a href="mailto:eshto@ashoka.edu.in" class="text-brand-400 hover:text-brand-300">eshto@ashoka.edu.in</a>.
+      <div class="pt-4 border-t border-surface-200 text-center">
+        <p class="text-xs text-surface-400 leading-relaxed">
+          By signing in, you agree to Eeshto's borrowing terms and policies.<br>
+          For issues, contact <a href="mailto:eeshto@ashoka.edu.in" class="text-red-500 hover:text-red-600 font-medium">eeshto@ashoka.edu.in</a>.
         </p>
       </div>
     </div>

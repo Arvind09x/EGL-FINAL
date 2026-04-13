@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Member Desk — ESHTO{% endblock %}
+{% block title %}Member Desk — Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-3xl font-bold text-white">🖥 Member Desk</h1>
-      <p class="text-gray-400 mt-1">Manage pickups, returns, and walk-ins</p>
+      <h1 class="text-3xl font-bold text-surface-900"> Member Desk</h1>
+      <p class="text-surface-500 mt-1">Manage pickups, returns, and walk-ins</p>
     </div>
     <div class="flex gap-3">
-      <a href="{% url 'core:desk_walk_in' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30 hover:bg-brand-600/40 transition-all">+ Walk-in</a>
-      <a href="{% url 'core:slot_list' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-gray-300 hover:bg-white/20 transition-all">Slots</a>
+      <a href="{% url 'core:desk_walk_in' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">+ Walk-in</a>
+      <a href="{% url 'core:slot_list' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Slots</a>
     </div>
   </div>
 
@@ -20,7 +20,7 @@
     <span class="text-lg">📅</span>
     <div class="flex flex-wrap gap-2">
       {% for slot in todays_slots %}
-        <span class="px-3 py-1.5 rounded-lg bg-brand-900/50 border border-brand-500/20 text-brand-300 text-sm font-medium">
+        <span class="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
           {{ slot.start_time|time:"g:i A" }} – {{ slot.end_time|time:"g:i A" }}
         </span>
       {% endfor %}
@@ -30,17 +30,17 @@
 
   <!-- Pickups (confirmed reservations for today) -->
   <section>
-    <h2 class="text-xl font-semibold text-white mb-4">📦 Today's Pickups</h2>
+    <h2 class="text-xl font-semibold text-surface-900 mb-4"> Today's Pickups</h2>
     <div class="space-y-3">
       {% for res in reservations %}
       <div class="glass rounded-2xl p-5" id="pickup-{{ res.pk }}">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-1">
             <div class="flex items-center gap-3">
-              <span class="text-white font-semibold">{{ res.user.email }}</span>
-              <span class="text-gray-500 text-sm">→ {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]</span>
+              <span class="text-surface-900 font-semibold">{{ res.user.email }}</span>
+              <span class="text-surface-500 text-sm">→ {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]</span>
             </div>
-            <p class="text-xs text-gray-400">Slot: {{ res.pickup_slot.start_time|time:"g:i A" }} | Return by: {{ res.return_slot.date|date:"M j" }}</p>
+            <p class="text-xs text-surface-400">Slot: {{ res.pickup_slot.start_time|time:"g:i A" }} | Return by: {{ res.return_slot.date|date:"M j" }}</p>
           </div>
           <div class="flex flex-wrap gap-2" id="actions-{{ res.pk }}">
             <form method="post" action="{% url 'core:desk_checkout' res.pk %}"
@@ -48,20 +48,20 @@
                   hx-target="#actions-{{ res.pk }}" hx-swap="innerHTML"
                   class="flex items-center gap-2">
               {% csrf_token %}
-              <input type="text" name="condition_notes" placeholder="Condition notes..." class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none w-40">
-              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600/80 text-white hover:bg-emerald-500 transition-all">✓ Check Out</button>
+              <input type="text" name="condition_notes" placeholder="Condition notes..." class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none w-40">
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all">✓ Check Out</button>
             </form>
             <form method="post" action="{% url 'core:desk_no_show' res.pk %}"
                   hx-post="{% url 'core:desk_no_show' res.pk %}"
                   hx-target="#actions-{{ res.pk }}" hx-swap="innerHTML">
               {% csrf_token %}
-              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-600/30 text-amber-300 border border-amber-500/30 hover:bg-amber-600/50 transition-all">✗ No-Show</button>
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">✗ No-Show</button>
             </form>
           </div>
         </div>
       </div>
       {% empty %}
-      <div class="glass rounded-2xl p-8 text-center text-gray-500">
+      <div class="glass rounded-2xl p-8 text-center text-surface-500">
         No pickups scheduled for today's slots.
       </div>
       {% endfor %}
@@ -70,20 +70,20 @@
 
   <!-- Active Checkouts (need return) -->
   <section>
-    <h2 class="text-xl font-semibold text-white mb-4">🔄 Active Checkouts</h2>
+    <h2 class="text-xl font-semibold text-surface-900 mb-4"> Active Checkouts</h2>
     <div class="space-y-3">
       {% for co in active_checkouts %}
-      <div class="glass rounded-2xl p-5 {% if co.is_lost_candidate %}border border-red-500/40{% endif %}" id="checkout-{{ co.pk }}">
+      <div class="glass rounded-2xl p-5 {% if co.is_lost_candidate %}border border-red-300{% endif %}" id="checkout-{{ co.pk }}">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-1">
             <div class="flex items-center gap-3">
-              <span class="text-white font-semibold">{{ co.borrower.email }}</span>
-              <span class="text-gray-500 text-sm">→ {{ co.game_copy.game_title.name }} [{{ co.game_copy.copy_label }}]</span>
+              <span class="text-surface-900 font-semibold">{{ co.borrower.email }}</span>
+              <span class="text-surface-500 text-sm">→ {{ co.game_copy.game_title.name }} [{{ co.game_copy.copy_label }}]</span>
               {% if co.is_lost_candidate %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-900/50 text-red-300 border border-red-500/30 animate-pulse">LOST CANDIDATE</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200 animate-pulse">LOST CANDIDATE</span>
               {% endif %}
             </div>
-            <p class="text-xs text-gray-400">
+            <p class="text-xs text-surface-400">
               Out since: {{ co.checkout_time|date:"M j, g:i A" }} |
               {% if co.due_date_slot %}Due: {{ co.due_date_slot.date|date:"M j" }}{% endif %} |
               Deposit: {{ co.get_deposit_status_display }}
@@ -95,23 +95,23 @@
                   hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML"
                   class="flex items-center gap-2">
               {% csrf_token %}
-              <input type="text" name="condition_notes" placeholder="Return notes..." class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none w-36">
-              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-600/80 text-white hover:bg-brand-500 transition-all">↩ Return</button>
+              <input type="text" name="condition_notes" placeholder="Return notes..." class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none w-36">
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold btn-primary text-white transition-all">↩ Return</button>
             </form>
-            <a href="{% url 'core:log_incident' co.pk %}" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-600/30 text-amber-300 border border-amber-500/30 hover:bg-amber-600/50 transition-all">⚠ Incident</a>
+            <a href="{% url 'core:log_incident' co.pk %}" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">⚠ Incident</a>
             {% if co.is_lost_candidate %}
             <form method="post" action="{% url 'core:finalize_lost' co.pk %}"
                   hx-post="{% url 'core:finalize_lost' co.pk %}"
                   hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML">
               {% csrf_token %}
-              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600/80 text-white hover:bg-red-500 transition-all">🚫 Finalize Lost</button>
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-all">🚫 Finalize Lost</button>
             </form>
             {% endif %}
           </div>
         </div>
       </div>
       {% empty %}
-      <div class="glass rounded-2xl p-8 text-center text-gray-500">
+      <div class="glass rounded-2xl p-8 text-center text-surface-500">
         No active checkouts.
       </div>
       {% endfor %}
@@ -120,13 +120,13 @@
 
   <!-- Override form -->
   <section class="glass rounded-2xl p-6">
-    <h2 class="text-lg font-semibold text-white mb-4">🔧 Member Override</h2>
+    <h2 class="text-lg font-semibold text-surface-900 mb-4"> Member Override</h2>
     <form method="post" action="{% url 'core:desk_override' %}" class="space-y-4">
       {% csrf_token %}
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm text-gray-400 mb-1">Override Type</label>
-          <select name="override_type" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:border-brand-500 focus:outline-none">
+          <label class="block text-sm text-surface-500 mb-1">Override Type</label>
+          <select name="override_type" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
             <option value="deposit">Deposit</option>
             <option value="fee">Fee</option>
             <option value="deadline">Deadline</option>
@@ -135,15 +135,15 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm text-gray-400 mb-1">Target Email</label>
-          <input type="email" name="target_email" placeholder="user@ashoka.edu.in" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none">
+          <label class="block text-sm text-surface-500 mb-1">Target Email</label>
+          <input type="email" name="target_email" placeholder="user@ashoka.edu.in" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-sm text-gray-400 mb-1">Reason (required)</label>
-          <input type="text" name="reason" required placeholder="Reason for override..." class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none">
+          <label class="block text-sm text-surface-500 mb-1">Reason (required)</label>
+          <input type="text" name="reason" required placeholder="Reason for override..." class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none">
         </div>
       </div>
-      <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-600/30 text-amber-300 border border-amber-500/30 hover:bg-amber-600/50 transition-all">Apply Override</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">Apply Override</button>
     </form>
   </section>
 </div>

@@ -1,40 +1,44 @@
 {% load static %}
+{% load core_tags %}
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ESHTO Games Library — Borrow board games at Ashoka University">
-  <title>{% block title %}ESHTO Games Library{% endblock %}</title>
+  <meta name="description" content="Eeshto Games Library — Borrow board games at Ashoka University">
+  <title>{% block title %}Eeshto Games Library{% endblock %}</title>
 
   <!-- Tailwind CSS via CDN (dev setup — P0-3) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
             brand: {
-              50:  '#f0f4ff',
-              100: '#dbe4ff',
-              200: '#bac8ff',
-              300: '#91a7ff',
-              400: '#748ffc',
-              500: '#5c7cfa',
-              600: '#4c6ef5',
-              700: '#4263eb',
-              800: '#3b5bdb',
-              900: '#364fc7',
-              950: '#1e3a8a',
+              50:  '#fef2f2',
+              100: '#fee2e2',
+              200: '#fecaca',
+              300: '#fca5a5',
+              400: '#f87171',
+              500: '#ef4444',
+              600: '#dc2626',
+              700: '#b91c1c',
+              800: '#991b1b',
+              900: '#7f1d1d',
+              950: '#450a0a',
             },
             surface: {
-              50:  '#f8fafc',
-              100: '#f1f5f9',
-              200: '#e2e8f0',
-              700: '#1e293b',
-              800: '#0f172a',
-              900: '#020617',
+              50:  '#ffffff',
+              100: '#f9fafb',
+              200: '#f3f4f6',
+              300: '#e5e7eb',
+              400: '#d1d5db',
+              500: '#9ca3af',
+              600: '#6b7280',
+              700: '#374151',
+              800: '#1f2937',
+              900: '#111827',
             }
           },
           fontFamily: {
@@ -42,11 +46,11 @@
           },
           animation: {
             'fade-in': 'fadeIn 0.4s ease-out',
-            'slide-up': 'slideUp 0.4s ease-out',
+            'slide-up': 'slideUp 0.5s ease-out',
           },
           keyframes: {
             fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-            slideUp: { '0%': { opacity: '0', transform: 'translateY(12px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(16px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
           }
         }
       }
@@ -56,7 +60,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- HTMX (P0-4) -->
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
@@ -64,44 +68,60 @@
   <!-- Custom styles -->
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
-    .glass { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+    .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .glass-dark { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.08); }
     .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.3); }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.12); }
     .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
     .htmx-request .htmx-indicator { opacity: 1; }
-    .btn-glow { box-shadow: 0 0 20px rgba(92, 124, 250, 0.3); }
-    .btn-glow:hover { box-shadow: 0 0 30px rgba(92, 124, 250, 0.5); }
-    .gradient-text { background: linear-gradient(135deg, #5c7cfa, #748ffc, #91a7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .btn-primary { background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3); }
+    .btn-primary:hover { background: linear-gradient(135deg, #b91c1c, #dc2626); box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4); transform: translateY(-1px); }
+    .gradient-text { background: linear-gradient(135deg, #dc2626, #ef4444, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-glass { background: rgba(255,255,255,0.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid rgba(0,0,0,0.06); }
+    /* Modal overlay */
+    .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .modal-content { animation: slideUp 0.3s ease-out; }
+    /* Subtle pattern background */
+    .bg-pattern {
+      background-color: #fafafa;
+      background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.03) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-surface-900 text-gray-100 min-h-screen flex flex-col">
+<body class="bg-pattern text-surface-800 min-h-screen flex flex-col">
 
   <!-- ── Navigation ──────────────────────────────────────── -->
-  <nav class="sticky top-0 z-50 glass border-b border-white/10">
+  <nav class="sticky top-0 z-50 nav-glass">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Logo -->
-        <a href="{% url 'core:home' %}" class="flex items-center gap-3 group">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <span class="text-white font-bold text-sm">🎲</span>
-          </div>
-          <span class="text-xl font-bold gradient-text tracking-tight">ESHTO</span>
+        <a href="{% url 'core:home' %}" class="flex items-center gap-2.5 group">
+          {% logo_static_url as logo_src %}
+          {% if logo_src %}
+            <img src="{{ logo_src }}" alt="Eeshto" class="h-9 w-9 rounded-xl object-contain group-hover:scale-110 transition-transform">
+          {% else %}
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:scale-110 transition-transform">
+              <span class="text-white font-bold text-sm">E</span>
+            </div>
+          {% endif %}
+          <span class="text-xl font-extrabold gradient-text tracking-tight">Eeshto</span>
         </a>
 
         <!-- Nav links -->
         <div class="hidden md:flex items-center gap-1">
-          <a href="{% url 'core:all_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">All Games</a>
-          <a href="{% url 'core:available_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">Available</a>
+          <a href="{% url 'core:all_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">All Games</a>
+          <a href="{% url 'core:available_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Available</a>
           {% if user.is_authenticated %}
-            <a href="{% url 'core:my_reservations' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">My Reservations</a>
-            <a href="{% url 'core:my_checkouts' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">My Dues</a>
-            {% if user.is_member %}
-              <a href="{% url 'core:member_desk' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-brand-300 hover:text-white hover:bg-brand-600/30 transition-all">🖥 Desk</a>
-              <a href="{% url 'core:slot_list' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">Slots</a>
+            <a href="{% url 'core:my_reservations' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">My Reservations</a>
+            <a href="{% url 'core:my_checkouts' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">My Dues</a>
+            {% if user.is_member or user.is_superuser %}
+              <a href="{% url 'core:member_desk' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-all"> Desk</a>
+              <a href="{% url 'core:slot_list' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Slots</a>
             {% endif %}
-            {% if user.is_senior_admin %}
-              <a href="{% url 'core:manage_roles' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-600/30 transition-all">⚙ Roles</a>
+            {% if user.is_senior_admin or user.is_superuser %}
+              <a href="{% url 'core:manage_roles' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition-all"> Roles</a>
             {% endif %}
           {% endif %}
         </div>
@@ -109,13 +129,23 @@
         <!-- Auth -->
         <div class="flex items-center gap-3">
           {% if user.is_authenticated %}
-            <span class="hidden sm:inline text-sm text-gray-400">{{ user.email }}</span>
-            <a href="{% url 'account_logout' %}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white transition-all">Sign Out</a>
+            <span class="hidden sm:inline text-sm text-surface-500 font-medium">{{ user.email }}</span>
+            <a href="{% url 'account_logout' %}" class="px-4 py-2 rounded-xl text-sm font-semibold border border-surface-200 text-surface-600 hover:bg-surface-100 hover:text-surface-800 transition-all">Sign Out</a>
           {% else %}
-            <a href="{% url 'account_login' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-lg btn-glow hover:from-brand-500 hover:to-brand-400 transition-all">Sign In with Google</a>
+            <a href="{% url 'account_login' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold btn-primary text-white transition-all">Sign In with Google</a>
           {% endif %}
         </div>
       </div>
+    </div>
+
+    <!-- Mobile nav -->
+    <div class="md:hidden border-t border-surface-200/50 px-4 py-2 flex gap-1 overflow-x-auto">
+      <a href="{% url 'core:all_games' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">All Games</a>
+      <a href="{% url 'core:available_games' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Available</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'core:my_reservations' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Reservations</a>
+        <a href="{% url 'core:my_checkouts' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Dues</a>
+      {% endif %}
     </div>
   </nav>
 
@@ -123,8 +153,8 @@
   {% if user.is_authenticated %}
     {% for r in user.restrictions.all %}
       {% if r.is_active %}
-        <div class="bg-red-900/50 border-b border-red-500/30 px-4 py-3 text-center">
-          <span class="text-red-200 text-sm font-medium">⚠ Your account is restricted: {{ r.reason }} (until {{ r.end_date|default:"permanently" }})</span>
+        <div class="bg-red-50 border-b border-red-200 px-4 py-3 text-center">
+          <span class="text-red-700 text-sm font-medium">⚠ Your account is restricted: {{ r.reason }} (until {{ r.end_date|default:"permanently" }})</span>
         </div>
       {% endif %}
     {% endfor %}
@@ -135,10 +165,10 @@
     <div class="max-w-7xl mx-auto px-4 pt-4 space-y-2">
       {% for message in messages %}
         <div class="rounded-xl px-4 py-3 text-sm font-medium animate-fade-in
-          {% if message.tags == 'success' %}bg-emerald-900/50 text-emerald-200 border border-emerald-500/30
-          {% elif message.tags == 'error' %}bg-red-900/50 text-red-200 border border-red-500/30
-          {% elif message.tags == 'warning' %}bg-amber-900/50 text-amber-200 border border-amber-500/30
-          {% else %}bg-brand-900/50 text-brand-200 border border-brand-500/30{% endif %}">
+          {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+          {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+          {% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200
+          {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
           {{ message }}
         </div>
       {% endfor %}
@@ -151,11 +181,11 @@
   </main>
 
   <!-- ── Footer ──────────────────────────────────────────── -->
-  <footer class="border-t border-white/10 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-      <span>© 2026 ESHTO Games Library — Ashoka University</span>
+  <footer class="border-t border-surface-200 mt-auto bg-white/60">
+    <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-surface-500">
+      <span>© 2026 Eeshto Games Library — Ashoka University</span>
       <span class="flex items-center gap-2">
-        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="inline-block w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
         Pickup: Student Commons, 2nd floor
       </span>
     </div>

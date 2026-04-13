@@ -134,7 +134,7 @@ def validate_reservation(user, game_copy, pickup_slot):
         return False, "You are currently restricted from making reservations."
 
     # Booking window (R4-1)
-    if not is_booking_window_open(pickup_slot) and not user.is_staff:
+    if not is_booking_window_open(pickup_slot) and not (user.is_staff or user.is_superuser):
         return False, "The booking window for this slot is not open."
 
     # Active limit (R4-2, R4-3)

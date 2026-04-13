@@ -1,31 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Manage Roles — ESHTO{% endblock %}
+{% block title %}Manage Roles — Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
-  <h1 class="text-3xl font-bold text-white">⚙ Manage Roles</h1>
-  <p class="text-gray-400">Grant or revoke member and senior admin roles.</p>
+  <h1 class="text-3xl font-bold text-surface-900"> Manage Roles</h1>
+  <p class="text-surface-500">Grant or revoke member and senior admin roles.</p>
 
   <!-- Quick action form -->
   <div class="glass rounded-2xl p-6">
-    <h2 class="text-lg font-semibold text-white mb-4">Quick Role Change</h2>
+    <h2 class="text-lg font-semibold text-surface-900 mb-4">Quick Role Change</h2>
     <form method="post" class="flex flex-col sm:flex-row items-end gap-4">
       {% csrf_token %}
       <div class="flex-1">
-        <label class="block text-sm text-gray-400 mb-1">Email</label>
+        <label class="block text-sm text-surface-500 mb-1">Email</label>
         <input type="email" name="email" required placeholder="user@ashoka.edu.in"
-               class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none transition-all">
+               class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-300 text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none transition-all">
       </div>
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Action</label>
-        <select name="action" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-brand-500 focus:outline-none transition-all">
+        <label class="block text-sm text-surface-500 mb-1">Action</label>
+        <select name="action" class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-300 text-surface-800 focus:border-red-500 focus:outline-none transition-all">
           <option value="grant_member">Grant Member</option>
           <option value="revoke_member">Revoke Member</option>
           <option value="grant_admin">Grant Senior Admin</option>
           <option value="revoke_admin">Revoke Senior Admin</option>
         </select>
       </div>
-      <button type="submit" class="px-6 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-lg btn-glow hover:from-brand-500 hover:to-brand-400 transition-all whitespace-nowrap">
+      <button type="submit" class="px-6 py-3 rounded-xl text-sm font-semibold btn-primary text-white transition-all whitespace-nowrap">
         Apply
       </button>
     </form>
@@ -35,30 +35,30 @@
   <div class="glass rounded-2xl overflow-hidden">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-white/10">
-          <th class="text-left p-4 text-gray-400 font-medium">Email</th>
-          <th class="text-left p-4 text-gray-400 font-medium">Name</th>
-          <th class="text-center p-4 text-gray-400 font-medium">Member</th>
-          <th class="text-center p-4 text-gray-400 font-medium">Senior Admin</th>
+        <tr class="border-b border-surface-200">
+          <th class="text-left p-4 text-surface-500 font-medium">Email</th>
+          <th class="text-left p-4 text-surface-500 font-medium">Name</th>
+          <th class="text-center p-4 text-surface-500 font-medium">Member</th>
+          <th class="text-center p-4 text-surface-500 font-medium">Senior Admin</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-white/5">
+      <tbody class="divide-y divide-surface-100">
         {% for u in users %}
-        <tr class="hover:bg-white/5 transition-colors">
-          <td class="p-4 text-white font-medium">{{ u.email }}</td>
-          <td class="p-4 text-gray-300">{{ u.first_name }} {{ u.last_name }}</td>
+        <tr class="hover:bg-surface-50 transition-colors">
+          <td class="p-4 text-surface-900 font-medium">{{ u.email }}</td>
+          <td class="p-4 text-surface-600">{{ u.first_name }} {{ u.last_name }}</td>
           <td class="p-4 text-center">
             {% if u.is_member %}
-              <span class="inline-block w-3 h-3 rounded-full bg-emerald-400"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
             {% else %}
-              <span class="inline-block w-3 h-3 rounded-full bg-gray-600"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-surface-300"></span>
             {% endif %}
           </td>
           <td class="p-4 text-center">
             {% if u.is_senior_admin %}
-              <span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-amber-500"></span>
             {% else %}
-              <span class="inline-block w-3 h-3 rounded-full bg-gray-600"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-surface-300"></span>
             {% endif %}
           </td>
         </tr>
