@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Library Policy — Eeshto{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8 max-w-4xl mx-auto">
+  <div class="text-center space-y-3">
+    <h1 class="text-4xl font-bold text-surface-900">Eeshto Games Library Policy</h1>
+    <p class="text-surface-500 text-lg">Eeshto presents the Games Library that offers a variety of games for students,
+      staff and faculty to use.</p>
+  </div>
+
+  <!-- Basic Terms -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-lg border border-red-200"></span>
+      Basic Terms
+    </h2>
+    <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+      <li>You may borrow any game available by filling the EGL Booking Sheet beforehand.</li>
+      <li>While collecting the game, you will have to pay a security deposit as listed on the EGL Booking Sheet.</li>
+      <li>You can only borrow games during our set slots twice a week.</li>
+      <li>You may borrow a maximum of 2 games at a time.</li>
+      <li>If you want to borrow the game for a whole week please sign up for both of that week's slots.</li>
+      <li>The games must be returned to the assigned Eeshto member during normal operation hours during the next slot.
+      </li>
+      <li>Upon return, you will be refunded the security deposit.</li>
+      <li>Late fees are INR 50.00 per every slot missed.</li>
+      <li>Once issued, you are responsible for the game. If you lose/damage the game you will be charged for repairs or
+        replacement (see terms below).</li>
+    </ul>
+  </section>
+
+  <!-- Borrowing Process -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span
+        class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-lg border border-emerald-200"></span>
+      Borrowing Process
+    </h2>
+    <ol class="space-y-2 text-surface-600 text-sm leading-relaxed list-decimal list-inside">
+      <li>Sign up on the EGL Booking Sheet.</li>
+      <li>Come to the Student Commons on the 2nd floor of the mess at the mentioned time (the second half hour of the
+        slot).</li>
+      <li>We are located near the couches between the meeting rooms.</li>
+      <li>Pay the security deposit for the game, we only accept UPI payments.</li>
+      <li>Games can be rented on a first-come, first-served basis if there aren't any prior reservations made for the
+        aforementioned game. <em class="text-surface-400">(Note: Rentals of such kind will only be entertained if and
+          when there are no reservations made.)</em></li>
+    </ol>
+  </section>
+
+  <!-- Return Process -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span
+        class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-lg border border-blue-200"></span>
+      Return Process
+    </h2>
+    <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+      <li>Please bring the game to the student commons on the 2nd floor of the mess at the mentioned time (the first
+        half hour of the slot preferably).</li>
+      <li>Exceptions may be arranged by emailing Eeshto, or the HOD (<a
+          href="mailto:spriha.chakraborty_ug2023@ashoka.edu.in"
+          class="text-red-600 hover:text-red-700 underline">spriha.chakraborty_ug2023@ashoka.edu.in</a>).</li>
+      <li>The game will be assessed by the assigned Eeshto member, and if approved, it will be checked in and the
+        security deposit will be returned.</li>
+      <li>In case it is not approved, see Terms for Damaged or Missing Components and Terms for Lost Games.</li>
+    </ul>
+  </section>
+
+  <!-- Hours of Operation -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span
+        class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-lg border border-amber-200"></span>
+      Hours of Operation
+    </h2>
+    <p class="text-surface-600 text-sm leading-relaxed">We have 2 slots per week, usually on Tuesday and Friday but may
+      vary. The dates and timings are listed in the booking sheet, as well as our weekly emails.</p>
+  </section>
+
+  <!-- Security Deposit Table -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-lg border border-red-200"></span>
+      Security Deposit Amounts
+    </h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-surface-200">
+            <th class="text-left p-3 text-surface-500 font-medium">Category</th>
+            <th class="text-left p-3 text-surface-500 font-medium">Games</th>
+            <th class="text-right p-3 text-surface-500 font-medium">Deposit (₹)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+          <tr class="hover:bg-surface-50 transition-colors">
+            <td class="p-3"><span
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">C1</span>
+            </td>
+            <td class="p-3 text-surface-700">Catan 1 & 2, Anti Monopoly, Shasn, Poker Set, Poker Chips</td>
+            <td class="p-3 text-right font-semibold text-surface-900">₹300</td>
+          </tr>
+          <tr class="hover:bg-surface-50 transition-colors">
+            <td class="p-3"><span
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-200">C2</span>
+            </td>
+            <td class="p-3 text-surface-700">Monopoly, Cards Vs Sanskaar, DND Starter Pack, Jenga, Risk, Cluedo</td>
+            <td class="p-3 text-right font-semibold text-surface-900">₹200</td>
+          </tr>
+          <tr class="hover:bg-surface-50 transition-colors">
+            <td class="p-3"><span
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">C3</span>
+            </td>
+            <td class="p-3 text-surface-700">Ticket to Ride, Scrabble, Pictureka, Stratego, Catan Extension Pack,
+              Pictionary</td>
+            <td class="p-3 text-right font-semibold text-surface-900">₹100</td>
+          </tr>
+          <tr class="hover:bg-surface-50 transition-colors">
+            <td class="p-3"><span
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">C4</span>
+            </td>
+            <td class="p-3 text-surface-700">Playing Cards 1 & 2, Fletter, Ludo + Snakes & Ladders, Uno Flip, UNO 1 & 2,
+              Weeping Farm</td>
+            <td class="p-3 text-right font-semibold text-surface-900">₹50</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Terms for Damage -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span
+        class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-lg border border-amber-200"></span>
+      Terms for Damage or Missing Components
+    </h2>
+    <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+      <li>Borrowers must inspect the game they are checking out before leaving.</li>
+      <li>Upon checkout, the borrower assumes full responsibility for the game(s) and all components.</li>
+      <li>All returned game(s) will be assessed for condition and components.</li>
+      <li>In case of any missing pieces or damage to the box/other components of the game, a replacement fee along with
+        a penalty will be charged to the most recent borrower, up to the cost of the game.</li>
+    </ul>
+  </section>
+
+  <!-- Terms for Lost Games -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-lg border border-red-200"></span>
+      Terms for Lost Games
+    </h2>
+    <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+      <li>If the game is not returned 30 days after its due date, it will be considered lost and the borrower will then
+        be charged the full cost of replacing the game.</li>
+      <li>The borrower will be sent an invoice for replacement and a late fee will be charged.</li>
+      <li>This must be paid in full (no partial payments allowed) unless the game is being returned or replaced, in
+        which case only the late fee would need to be paid.</li>
+      <li>Replaced games must be the same or later edition.</li>
+      <li>Eeshto may impose a temporary ban on borrowers who have lost games, repeated offenders may be permanently
+        blacklisted from using EGL.</li>
+    </ul>
+  </section>
+
+  <!-- Terms for RAs, Clubs and Societies -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span
+        class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-lg border border-purple-200"></span>
+      Terms for RAs, Clubs and Societies
+    </h2>
+    <div class="space-y-4">
+      <div>
+        <h3 class="text-sm font-bold text-surface-800 mb-2">Clubs and Societies</h3>
+        <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+          <li>A club or society may choose to borrow independently for their events. In this case, all terms for an
+            individual will continue to apply.</li>
+          <li>A security deposit will be collected at the time of borrowing and will be refunded upon return and
+            inspection of the games.</li>
+          <li>In the event that the club/society has previously damaged or lost a game, Eeshto will charge a higher
+            security deposit (MRP of the cost for a replacement).</li>
+          <li>Upon 2 incidents of damage or loss, the club/society will be banned from EGL for the next 2 semesters.
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-surface-800 mb-2">Resident Assistants</h3>
+        <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+          <li>Resident Assistants may borrow up to 4 games for floor events without paying the security deposit, however
+            please send an email ahead of time to check availability of the games.</li>
+          <li>All other terms still apply.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terms for Eeshto Members -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-surface-900 flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-lg border border-red-200"></span>
+      Terms for Eeshto Members
+    </h2>
+    <ul class="space-y-2 text-surface-600 text-sm leading-relaxed list-disc list-inside">
+      <li>An assigned Eeshto member is expected to accurately document the borrower's relevant information and document
+        the check in/out of games.</li>
+      <li>An assigned Eeshto member is expected to examine all the games that are borrowed and returned, document their
+        condition and keep track of all games.</li>
+      <li>If damaged or missing pieces are found after the assigned member has checked in the game, then the member will
+        be held responsible.</li>
+      <li>The assigned member must only edit the library documents from their personal Ashoka email ID.</li>
+      <li>Eeshto members may borrow games by the same procedure.</li>
+    </ul>
+  </section>
+
+  <div class="text-center pb-4">
+    <a href="{% url 'core:home' %}"
+      class="px-8 py-3.5 rounded-xl text-base font-semibold btn-primary text-white transition-all inline-block">
+      ← Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -205,7 +205,7 @@ def compute_deposit_amount(user, game_copy):
     """
     Determine the deposit amount for this reservation.
     - RAs: 0
-    - Clubs with prior incidents: replacement cost
+    - Clubs with prior incidents: security deposit (MRP)
     - Others: 0 (default, unless member overrides)
     """
     try:
@@ -225,7 +225,7 @@ def compute_deposit_amount(user, game_copy):
             ],
         ).count()
         if incident_count > 0:
-            return game_copy.game_title.replacement_cost
+            return game_copy.game_title.security_deposit
 
     return Decimal("0")
 
@@ -456,7 +456,7 @@ def check_lost_candidate(checkout):
 @transaction.atomic
 def finalize_lost_game(checkout, member):
     """F6-4: Finalize a lost game — charge replacement + accumulated late fees."""
-    replacement_cost = checkout.game_copy.game_title.replacement_cost
+    replacement_cost = checkout.game_copy.game_title.security_deposit
     late_fee = calculate_late_fee(checkout)
     total = replacement_cost + late_fee
 
@@ -503,10 +503,10 @@ def log_damage_incident(checkout, member, description, damage_fee=None):
 
     warning = None
     if damage_fee and damage_fee > 0:
-        if damage_fee > checkout.game_copy.game_title.replacement_cost:
+        if damage_fee > checkout.game_copy.game_title.security_deposit:
             warning = (
-                f"Warning: damage fee ₹{damage_fee} exceeds replacement "
-                f"cost ₹{checkout.game_copy.game_title.replacement_cost}"
+                f"Warning: damage fee ₹{damage_fee} exceeds security "
+                f"deposit ₹{checkout.game_copy.game_title.security_deposit}"
             )
         Charge.objects.create(
             user=checkout.borrower,

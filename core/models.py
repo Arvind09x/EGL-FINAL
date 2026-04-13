@@ -77,12 +77,12 @@ class GameTitle(models.Model):
     min_players = models.PositiveSmallIntegerField(default=1)
     max_players = models.PositiveSmallIntegerField(default=4)
     category = models.CharField(max_length=100, blank=True)
-    replacement_cost = models.DecimalField(
+    security_deposit = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
         validators=[MinValueValidator(0)],
-        help_text="Cost in INR to replace this game.",
+        help_text="Security deposit in INR required to borrow this game.",
     )
 
     class Meta:

@@ -113,6 +113,7 @@
         <div class="hidden md:flex items-center gap-1">
           <a href="{% url 'core:all_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">All Games</a>
           <a href="{% url 'core:available_games' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Available</a>
+          <a href="{% url 'core:policy' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Policy</a>
           {% if user.is_authenticated %}
             <a href="{% url 'core:my_reservations' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">My Reservations</a>
             <a href="{% url 'core:my_checkouts' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">My Dues</a>
@@ -142,6 +143,7 @@
     <div class="md:hidden border-t border-surface-200/50 px-4 py-2 flex gap-1 overflow-x-auto">
       <a href="{% url 'core:all_games' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">All Games</a>
       <a href="{% url 'core:available_games' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Available</a>
+      <a href="{% url 'core:policy' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Policy</a>
       {% if user.is_authenticated %}
         <a href="{% url 'core:my_reservations' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Reservations</a>
         <a href="{% url 'core:my_checkouts' %}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-600 hover:bg-surface-200/60 whitespace-nowrap">Dues</a>

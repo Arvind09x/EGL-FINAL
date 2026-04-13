@@ -34,8 +34,8 @@
           {% if game.category %}
             <span class="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-sm font-medium">{{ game.category }}</span>
           {% endif %}
-          {% if game.replacement_cost %}
-            <span class="text-surface-400 text-sm">Replacement: Rs. {{ game.replacement_cost }}</span>
+          {% if game.security_deposit %}
+            <span class="text-surface-400 text-sm">Security Deposit: ₹{{ game.security_deposit }}</span>
           {% endif %}
         </div>
       </div>

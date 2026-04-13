@@ -8,6 +8,7 @@ app_name = "core"
 urlpatterns = [
     # ── Public / Borrower pages ─────────────────────────────
     path("", views.home, name="home"),
+    path("policy/", views.policy, name="policy"),
     path("games/", views.all_games, name="all_games"),
     path("games/available/", views.available_games, name="available_games"),
     path("games/<int:pk>/", views.game_detail, name="game_detail"),

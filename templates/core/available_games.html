@@ -33,9 +33,9 @@
       <div class="aspect-[4/3] bg-gradient-to-br from-emerald-50 to-surface-100 flex items-center justify-center">
         {% game_image_url game.name as static_img %}
         {% if static_img %}
-          <img src="{{ static_img }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+          <img src="{{ static_img }}" alt="{{ game.name }}" class="w-full h-full object-contain">
         {% elif game.image %}
-          <img src="{{ game.image.url }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+          <img src="{{ game.image.url }}" alt="{{ game.name }}" class="w-full h-full object-contain">
         {% else %}
           <span class="text-6xl opacity-20 group-hover:scale-110 transition-transform">🎲</span>
         {% endif %}

@@ -3,7 +3,7 @@ Management command to import game catalog from CSV.
 Covers task I8-2.
 
 CSV format (with header row):
-    name, copy_count, replacement_cost, category, min_players, max_players, description
+    name, copy_count, security_deposit, category, min_players, max_players, description
 
 Usage:
     python manage.py import_games games.csv
@@ -32,7 +32,7 @@ class Command(BaseCommand):
             for row in reader:
                 name = row["name"].strip()
                 copy_count = int(row.get("copy_count", 1))
-                replacement_cost = float(row.get("replacement_cost", 0))
+                security_deposit = float(row.get("security_deposit", 0))
                 category = row.get("category", "").strip()
                 min_players = int(row.get("min_players", 1))
                 max_players = int(row.get("max_players", 4))
@@ -41,7 +41,7 @@ class Command(BaseCommand):
                 title, t_created = GameTitle.objects.get_or_create(
                     name=name,
                     defaults={
-                        "replacement_cost": replacement_cost,
+                        "security_deposit": security_deposit,
                         "category": category,
                         "min_players": min_players,
                         "max_players": max_players,

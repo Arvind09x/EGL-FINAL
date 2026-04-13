@@ -73,7 +73,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(GameTitle)
 class GameTitleAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "min_players", "max_players", "replacement_cost"]
+    list_display = ["name", "category", "min_players", "max_players", "security_deposit"]
     list_filter = ["category"]
     search_fields = ["name", "category"]
     inlines = [GameCopyInline]

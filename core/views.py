@@ -54,6 +54,11 @@ def home(request):
     })
 
 
+def policy(request):
+    """Library policy page."""
+    return render(request, "core/policy.html")
+
+
 # =====================================================================
 # B3-1  All Games
 # =====================================================================
