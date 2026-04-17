@@ -161,17 +161,21 @@ def validate_reservation(user, game_copy, pickup_slot):
 # R4-6, R4-7  Return slot computation
 # =====================================================================
 
-def compute_return_slot(user, pickup_slot):
+def compute_return_slot(user, pickup_slot, game_copy=None):
     """
     Default return slot = next slot.
-    Two-slot extension: if the borrower has a confirmed reservation for both
-    Tuesday and Friday of the same week, return = same weekday next week.
+    Two-slot extension: if the borrower has a confirmed reservation for the
+    SAME game_copy on both Tuesday and Friday of the same week,
+    return = same weekday next week (1-week loan).
     """
     next_slot = get_next_slot(pickup_slot)
     if not next_slot:
         return pickup_slot  # fallback
 
-    # Check for two-slot extension
+    if game_copy is None:
+        return next_slot
+
+    # Check for two-slot extension (same copy only)
     week_start = pickup_slot.date - timedelta(days=pickup_slot.date.weekday())
     week_end = week_start + timedelta(days=6)
     week_slots = WeeklySlot.objects.filter(
@@ -179,6 +183,7 @@ def compute_return_slot(user, pickup_slot):
     )
     user_reservations_this_week = Reservation.objects.filter(
         user=user,
+        game_copy=game_copy,
         pickup_slot__in=week_slots,
         status=Reservation.Status.CONFIRMED,
     )
@@ -187,7 +192,7 @@ def compute_return_slot(user, pickup_slot):
     )
     booked_dates.add(pickup_slot.date)  # include current reservation
 
-    # If both a Tue and Fri are booked this week → extended return
+    # If both a Tue and Fri are booked this week for same copy → extended return
     weekdays_booked = {d.weekday() for d in booked_dates}
     if {1, 4}.issubset(weekdays_booked):  # 1=Tue, 4=Fri
         extended = get_same_weekday_next_week(pickup_slot)
@@ -201,33 +206,7 @@ def compute_return_slot(user, pickup_slot):
 # R4-4, R4-5  Club/Society deposit + ban logic
 # =====================================================================
 
-def compute_deposit_amount(user, game_copy):
-    """
-    Determine the deposit amount for this reservation.
-    - RAs: 0
-    - Clubs with prior incidents: security deposit (MRP)
-    - Others: 0 (default, unless member overrides)
-    """
-    try:
-        profile = user.borrower_profile
-    except BorrowerProfile.DoesNotExist:
-        return Decimal("0")
 
-    if profile.policy_type == BorrowerProfile.PolicyType.RA:
-        return Decimal("0")
-
-    if profile.policy_type == BorrowerProfile.PolicyType.CLUB_SOCIETY:
-        incident_count = Incident.objects.filter(
-            user=user,
-            incident_type__in=[
-                Incident.IncidentType.DAMAGE,
-                Incident.IncidentType.LOST_GAME,
-            ],
-        ).count()
-        if incident_count > 0:
-            return game_copy.game_title.security_deposit
-
-    return Decimal("0")
 
 
 def check_club_ban(user):
@@ -273,7 +252,7 @@ def create_reservation(user, game_copy, pickup_slot):
     if not ok:
         return None, err
 
-    return_slot = compute_return_slot(user, pickup_slot)
+    return_slot = compute_return_slot(user, pickup_slot, game_copy)
 
     reservation = Reservation.objects.create(
         user=user,
@@ -283,15 +262,31 @@ def create_reservation(user, game_copy, pickup_slot):
         status=Reservation.Status.CONFIRMED,
     )
 
-    # Create deposit charge if applicable
-    deposit = compute_deposit_amount(user, game_copy)
-    if deposit > 0:
-        Charge.objects.create(
-            user=user,
-            charge_type=Charge.ChargeType.DEPOSIT,
-            amount=deposit,
-            status=Charge.ChargeStatus.UNPAID,
+    # 4-6: Two-slot extension retroactive update
+    # If this new reservation triggered a two-slot extension,
+    # we need to ensure the OTHER reservation for the SAME copy in the
+    # same week is also extended.
+    next_slot_fallback = get_next_slot(pickup_slot)
+    if return_slot != next_slot_fallback:
+        week_start = pickup_slot.date - timedelta(days=pickup_slot.date.weekday())
+        week_end = week_start + timedelta(days=6)
+        week_slots = WeeklySlot.objects.filter(
+            date__gte=week_start, date__lte=week_end, is_cancelled=False
         )
+        user_reservations_this_week = Reservation.objects.filter(
+            user=user,
+            game_copy=game_copy,
+            pickup_slot__in=week_slots,
+            status=Reservation.Status.CONFIRMED,
+        ).exclude(pk=reservation.pk)
+        
+        for r in user_reservations_this_week:
+            extended = get_same_weekday_next_week(r.pickup_slot)
+            if extended and r.return_slot != extended:
+                r.return_slot = extended
+                r.save()
+
+
 
     _log("reserve", user, details={
         "reservation_id": reservation.pk,
@@ -306,9 +301,9 @@ def create_reservation(user, game_copy, pickup_slot):
 def cancel_reservation(reservation, user):
     """Cancel a reservation if within the allowed window."""
     now = _now_ist()
-    cutoff = reservation.pickup_slot.start_datetime - timedelta(hours=1)
+    cutoff = reservation.pickup_slot.start_datetime
     if now > cutoff:
-        return False, "Cannot cancel within 1 hour of the pickup slot."
+        return False, "Cannot cancel within or after the pickup slot starts."
 
     if reservation.status != Reservation.Status.CONFIRMED:
         return False, "Only confirmed reservations can be cancelled."
@@ -329,6 +324,10 @@ def cancel_reservation(reservation, user):
 @transaction.atomic
 def perform_checkout(reservation, member, condition_notes=""):
     """D5-3: Member checks out a game to a borrower."""
+    # Prevent double-checkout
+    if hasattr(reservation, 'checkout'):
+        return reservation.checkout
+
     checkout = Checkout.objects.create(
         reservation=reservation,
         borrower=reservation.user,
@@ -337,12 +336,27 @@ def perform_checkout(reservation, member, condition_notes=""):
         condition_notes=condition_notes,
         due_date_slot=reservation.return_slot,
     )
+
+    # Mark the copy as checked-out
     reservation.game_copy.is_available = False
+    if condition_notes:
+        reservation.game_copy.notes = condition_notes
     reservation.game_copy.save()
+
+    deposit = reservation.game_copy.game_title.security_deposit
+    if deposit > 0:
+        Charge.objects.create(
+            user=reservation.user,
+            charge_type=Charge.ChargeType.DEPOSIT,
+            amount=deposit,
+            status=Charge.ChargeStatus.COLLECTED,
+            checkout=checkout,
+        )
 
     _log("checkout", member, target_user=reservation.user, details={
         "checkout_id": checkout.pk,
         "game_copy": str(reservation.game_copy),
+        "deposit_amount": str(reservation.game_copy.game_title.security_deposit),
     })
     return checkout
 
@@ -351,7 +365,10 @@ def perform_checkout(reservation, member, condition_notes=""):
 def perform_return(checkout, member, condition_notes=""):
     """D5-4: Member marks a game as returned."""
     checkout.return_time = timezone.now()
-    checkout.condition_notes = condition_notes or checkout.condition_notes
+    checkout.return_member = member
+    if condition_notes:
+        checkout.condition_notes = condition_notes
+        checkout.game_copy.notes = condition_notes
     checkout.save()
 
     checkout.game_copy.is_available = True
@@ -398,7 +415,19 @@ def perform_walk_in_checkout(borrower, game_copy, member, condition_notes="", du
         due_date_slot=due_date_slot,
     )
     game_copy.is_available = False
+    if condition_notes:
+        game_copy.notes = condition_notes
     game_copy.save()
+
+    deposit = game_copy.game_title.security_deposit
+    if deposit > 0:
+        Charge.objects.create(
+            user=borrower,
+            charge_type=Charge.ChargeType.DEPOSIT,
+            amount=deposit,
+            status=Charge.ChargeStatus.COLLECTED,
+            checkout=checkout,
+        )
 
     _log("walk_in", member, target_user=borrower, details={
         "checkout_id": checkout.pk,
@@ -432,7 +461,7 @@ def update_late_fee_charge(checkout):
     charge, created = Charge.objects.get_or_create(
         checkout=checkout,
         charge_type=Charge.ChargeType.LATE_FEE,
-        defaults={"user": checkout.borrower, "amount": fee},
+        defaults={"user": checkout.borrower, "amount": fee, "status": Charge.ChargeStatus.PAID},
     )
     if not created and charge.amount != fee:
         charge.amount = fee
@@ -465,6 +494,7 @@ def finalize_lost_game(checkout, member):
         charge_type=Charge.ChargeType.LOST_REPLACEMENT,
         amount=total,
         checkout=checkout,
+        status=Charge.ChargeStatus.PAID,
         notes=f"Replacement cost ₹{replacement_cost} + late fees ₹{late_fee}",
     )
 
@@ -514,6 +544,7 @@ def log_damage_incident(checkout, member, description, damage_fee=None):
             amount=damage_fee,
             checkout=checkout,
             incident=incident,
+            status=Charge.ChargeStatus.PAID,
         )
 
     check_club_ban(checkout.borrower)

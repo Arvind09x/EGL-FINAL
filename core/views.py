@@ -6,11 +6,13 @@ Member desk (D5-*), Fees & incidents (F6-*), Slot management (S7-*),
 and Role management (A2-6).
 """
 
+import json
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -73,12 +75,15 @@ def all_games(request):
 # =====================================================================
 
 def available_games(request):
+    today = timezone.now().date()
+    monday = today - timedelta(days=today.weekday())
+    sunday = monday + timedelta(days=6)
+
     upcoming_slots = WeeklySlot.objects.filter(
-        date__gte=timezone.now().date(), is_cancelled=False
-    ).order_by("date", "start_time")[:4]
+        date__gte=today, date__lte=sunday, is_cancelled=False
+    ).order_by("date", "start_time")
 
     games = GameTitle.objects.prefetch_related("copies").filter(
-        copies__is_available=True,
         copies__condition__in=["good", "fair"],
     ).distinct()
 
@@ -94,9 +99,14 @@ def available_games(request):
 
 def game_detail(request, pk):
     game = get_object_or_404(GameTitle.objects.prefetch_related("copies"), pk=pk)
+    
+    today = timezone.now().date()
+    monday = today - timedelta(days=today.weekday())
+    sunday = monday + timedelta(days=6)
+
     upcoming_slots = WeeklySlot.objects.filter(
-        date__gte=timezone.now().date(), is_cancelled=False
-    ).order_by("date", "start_time")[:4]
+        date__gte=today, date__lte=sunday, is_cancelled=False
+    ).order_by("date", "start_time")
 
     # Check which slots have open booking windows
     slots_with_status = []
@@ -136,12 +146,50 @@ def game_detail(request, pk):
 
 @borrower_required
 def my_reservations(request):
-    reservations = Reservation.objects.filter(user=request.user).select_related(
+    raw_reservations = Reservation.objects.filter(user=request.user).select_related(
         "game_copy__game_title", "pickup_slot", "return_slot"
-    )
+    ).annotate(
+        has_checkout=Exists(Checkout.objects.filter(reservation=OuterRef('pk')))
+    ).order_by("-created_at")
+
+    reservations = list(raw_reservations)
+
+    # Group reservations by (game_copy_id, iso_year, iso_week)
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for r in reservations:
+        y, w, d = r.pickup_slot.date.isocalendar()
+        groups[(r.game_copy_id, y, w)].append(r)
+        
+    unique_reservations = []
+    seen_groups = set()
+    for r in reservations:
+        y, w, d = r.pickup_slot.date.isocalendar()
+        key = (r.game_copy_id, y, w)
+        group_res = groups[key]
+
+        # Two-slot extension: ONLY when same copy booked for both Tue and Fri
+        if len(group_res) > 1 and {1, 4}.issubset({res.pickup_slot.date.weekday() for res in group_res}):
+            r.is_extended_group = True
+            r.is_fully_checked_out = any(g.has_checkout for g in group_res)
+            # Find the Tue reservation (earliest pickup)
+            tue_res = min(group_res, key=lambda x: x.pickup_slot.date)
+            # Find the return slot from the Tue reservation (should be next Tue)
+            r.display_pickup = tue_res.pickup_slot
+            r.display_return = tue_res.return_slot
+            if key not in seen_groups:
+                seen_groups.add(key)
+                unique_reservations.append(r)
+        else:
+            r.is_extended_group = False
+            r.is_fully_checked_out = r.has_checkout
+            r.display_pickup = r.pickup_slot
+            r.display_return = r.return_slot
+            unique_reservations.append(r)
+            
     restriction = services.get_active_restriction(request.user)
     return render(request, "core/my_reservations.html", {
-        "reservations": reservations,
+        "reservations": unique_reservations,
         "restriction": restriction,
         "location": PICKUP_LOCATION,
     })
@@ -247,7 +295,11 @@ def member_desk(request):
     reservations = Reservation.objects.filter(
         pickup_slot__in=todays_slots,
         status=Reservation.Status.CONFIRMED,
-    ).select_related("user", "game_copy__game_title", "pickup_slot")
+    ).select_related(
+        "user", "game_copy__game_title", "pickup_slot", "return_slot"
+    ).annotate(
+        has_checkout=Exists(Checkout.objects.filter(reservation=OuterRef('pk')))
+    ).filter(has_checkout=False)
 
     active_checkouts = Checkout.objects.filter(
         return_time__isnull=True
@@ -296,17 +348,21 @@ def desk_return(request, checkout_id):
     checkout = get_object_or_404(Checkout, pk=checkout_id)
     condition_notes = request.POST.get("condition_notes", "")
 
+    # Calculate final late fee before setting return_time
+    late_fee_charge = services.update_late_fee_charge(checkout)
+
     services.perform_return(checkout, request.user, condition_notes)
 
-    # Refund deposit (D5-5)
+    # Refund deposit & Settle Late Fees
     deposit_charges = Charge.objects.filter(
         checkout=checkout,
         charge_type=Charge.ChargeType.DEPOSIT,
         status=Charge.ChargeStatus.COLLECTED,
     )
-    for charge in deposit_charges:
-        charge.status = Charge.ChargeStatus.REFUNDED
-        charge.save()
+    for deposit in deposit_charges:
+        # Mark deposit as refunded
+        deposit.status = Charge.ChargeStatus.REFUNDED
+        deposit.save()
 
     if request.htmx:
         return HttpResponse(
@@ -344,7 +400,6 @@ def desk_walk_in(request):
         borrower_email = request.POST.get("borrower_email", "")
         phone_number = request.POST.get("phone_number", "").strip()
         copy_id = request.POST.get("copy_id", "")
-        condition_notes = request.POST.get("condition_notes", "")
 
         try:
             borrower = User.objects.get(email=borrower_email)
@@ -369,7 +424,7 @@ def desk_walk_in(request):
         ).order_by("date", "start_time").first()
 
         checkout = services.perform_walk_in_checkout(
-            borrower, copy, request.user, condition_notes, due_slot
+            borrower, copy, request.user, "", due_slot
         )
         messages.success(request, f"Walk-in checkout created for {borrower.email}.")
         return redirect("core:member_desk")
@@ -377,8 +432,10 @@ def desk_walk_in(request):
     available_copies = GameCopy.objects.filter(
         is_available=True, condition__in=["good", "fair"]
     ).select_related("game_title")
+    all_emails = json.dumps(list(User.objects.values_list("email", flat=True)))
     return render(request, "core/desk/walk_in.html", {
         "available_copies": available_copies,
+        "all_emails": all_emails,
     })
 
 
@@ -541,6 +598,126 @@ def cancel_slot(request, pk):
         )
     messages.success(request, f"Slot on {slot.date} cancelled.")
     return redirect("core:slot_list")
+
+
+# =====================================================================
+# D5-9  Admin Logs Ledger
+# =====================================================================
+
+def _email_to_name(email):
+    """Convert 'arjun.singh_ug2023@ashoka.edu.in' → 'Arjun Singh'."""
+    if not email or email == '-':
+        return email or '-'
+    local = email.split('@')[0]          # arjun.singh_ug2023
+    name_part = local.split('_')[0]      # arjun.singh
+    return name_part.replace('.', ' ').title()  # Arjun Singh
+
+
+@member_required
+def admin_logs(request):
+    checkouts = Checkout.objects.select_related(
+        "borrower", "game_copy__game_title", "handoff_member", "return_member"
+    ).prefetch_related("charges").order_by("-checkout_time")
+
+    transactions = []
+    balances = {}
+
+    for co in checkouts:
+        deposit_charge = next((c for c in co.charges.all() if c.charge_type == Charge.ChargeType.DEPOSIT), None)
+        deposit_amount = deposit_charge.amount if deposit_charge else Decimal('0')
+        
+        late_fee = next((c for c in co.charges.all() if c.charge_type == Charge.ChargeType.LATE_FEE), None)
+        late_fee_amount = late_fee.amount if late_fee and late_fee.status == Charge.ChargeStatus.PAID else Decimal('0')
+        
+        damage_fee = next((c for c in co.charges.all() if c.charge_type == Charge.ChargeType.DAMAGE_FEE), None)
+        damage_fee_amount = damage_fee.amount if damage_fee and damage_fee.status == Charge.ChargeStatus.PAID else Decimal('0')
+        
+        if co.handoff_member:
+            uid = co.handoff_member.pk
+            if uid not in balances:
+                balances[uid] = {'user': co.handoff_member, 'collected': Decimal('0'), 'refunded': Decimal('0'), 'net': Decimal('0')}
+            balances[uid]['collected'] += deposit_amount
+            balances[uid]['net'] += deposit_amount
+            
+        is_refunded = deposit_charge and deposit_charge.status == Charge.ChargeStatus.REFUNDED
+        amount_refunded = max(Decimal('0'), deposit_amount - late_fee_amount - damage_fee_amount) if is_refunded else Decimal('0')
+        
+        if is_refunded and co.return_member:
+            rid = co.return_member.pk
+            if rid not in balances:
+                balances[rid] = {'user': co.return_member, 'collected': Decimal('0'), 'refunded': Decimal('0'), 'net': Decimal('0')}
+            balances[rid]['refunded'] += amount_refunded
+            balances[rid]['net'] -= amount_refunded
+            
+        transactions.append({
+            'borrower': _email_to_name(co.borrower.email),
+            'game': co.game_copy.game_title.name,
+            'deposit_paid': deposit_amount,
+            'checkout_admin': _email_to_name(co.handoff_member.email) if co.handoff_member else '-',
+            'return_admin': _email_to_name(co.return_member.email) if co.return_member else '-',
+            'amount_refunded': amount_refunded,
+            'time': co.checkout_time,
+            'status': deposit_charge.get_status_display() if deposit_charge else 'No Deposit'
+        })
+
+    debtors = []
+    creditors = []
+    
+    for b in balances.values():
+        if b['net'] > 0:
+            debtors.append({'user': b['user'], 'amount': b['net']})
+        elif b['net'] < 0:
+            creditors.append({'user': b['user'], 'amount': -b['net']})
+            
+    debtors.sort(key=lambda x: x['amount'], reverse=True)
+    creditors.sort(key=lambda x: x['amount'], reverse=True)
+    
+    settlements = []
+    i, j = 0, 0
+    while i < len(debtors) and j < len(creditors):
+        debtor = debtors[i]
+        creditor = creditors[j]
+        amount = min(debtor['amount'], creditor['amount'])
+        
+        if amount > 0:
+            settlements.append({
+                'from': _email_to_name(debtor['user'].email),
+                'to': _email_to_name(creditor['user'].email),
+                'amount': amount
+            })
+            
+        debtor['amount'] -= amount
+        creditor['amount'] -= amount
+        
+        if debtor['amount'] == 0: i += 1
+        if creditor['amount'] == 0: j += 1
+            
+    for k in range(i, len(debtors)):
+        if debtors[k]['amount'] > 0:
+            settlements.append({
+                'from': _email_to_name(debtors[k]['user'].email),
+                'to': 'Library Treasury',
+                'amount': debtors[k]['amount']
+            })
+
+    for k in range(j, len(creditors)):
+        if creditors[k]['amount'] > 0:
+             settlements.append({
+                 'from': 'Library Treasury',
+                 'to': _email_to_name(creditors[k]['user'].email),
+                 'amount': creditors[k]['amount']
+             })
+             
+    # Format balance names for display
+    balances_list = sorted(list(balances.values()), key=lambda x: x['net'], reverse=True)
+    for b in balances_list:
+        b['display_name'] = _email_to_name(b['user'].email)
+            
+    return render(request, "core/admin_logs.html", {
+        "transactions": transactions,
+        "balances": balances_list,
+        "settlements": settlements
+    })
 
 
 # =====================================================================

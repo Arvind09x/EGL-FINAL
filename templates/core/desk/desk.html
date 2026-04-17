@@ -11,6 +11,7 @@
     <div class="flex gap-3">
       <a href="{% url 'core:desk_walk_in' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">+ Walk-in</a>
       <a href="{% url 'core:slot_list' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Slots</a>
+      <a href="{% url 'core:admin_logs' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all">Logs & Ledger</a>
     </div>
   </div>
 
@@ -48,7 +49,6 @@
                   hx-target="#actions-{{ res.pk }}" hx-swap="innerHTML"
                   class="flex items-center gap-2">
               {% csrf_token %}
-              <input type="text" name="condition_notes" placeholder="Condition notes..." class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none w-40">
               <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all">✓ Check Out</button>
             </form>
             <form method="post" action="{% url 'core:desk_no_show' res.pk %}"
@@ -95,10 +95,8 @@
                   hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML"
                   class="flex items-center gap-2">
               {% csrf_token %}
-              <input type="text" name="condition_notes" placeholder="Return notes..." class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none w-36">
               <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold btn-primary text-white transition-all">↩ Return</button>
             </form>
-            <a href="{% url 'core:log_incident' co.pk %}" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">⚠ Incident</a>
             {% if co.is_lost_candidate %}
             <form method="post" action="{% url 'core:finalize_lost' co.pk %}"
                   hx-post="{% url 'core:finalize_lost' co.pk %}"
@@ -126,13 +124,14 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm text-surface-500 mb-1">Override Type</label>
-          <select name="override_type" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+          <select name="override_type" id="override-type-select" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
             <option value="deposit">Deposit</option>
             <option value="fee">Fee</option>
             <option value="deadline">Deadline</option>
             <option value="availability">Availability</option>
             <option value="limit">Borrower Limit</option>
           </select>
+          <p id="override-description" class="text-xs text-surface-400 mt-1.5 leading-relaxed"></p>
         </div>
         <div>
           <label class="block text-sm text-surface-500 mb-1">Target Email</label>
@@ -147,4 +146,23 @@
     </form>
   </section>
 </div>
+
+<script>
+(function() {
+  const descriptions = {
+    deposit: "Waive or adjust the security deposit for this borrower. Use when a trusted member or special event means no deposit is needed.",
+    fee: "Override late fees or damage fees. Use to waive or reduce a fee that was auto-calculated by the system.",
+    deadline: "Extend the return deadline for a checkout past the normal due date. Use when a borrower needs extra time and you want to prevent late-fee accrual.",
+    availability: "Force-checkout a game copy that is currently marked unavailable (e.g. reserved by someone else or flagged). Use carefully.",
+    limit: "Allow a borrower to exceed the maximum number of simultaneous checkouts. Use for club events or trusted users."
+  };
+  const select = document.getElementById('override-type-select');
+  const desc = document.getElementById('override-description');
+  function update() {
+    desc.textContent = descriptions[select.value] || '';
+  }
+  select.addEventListener('change', update);
+  update();
+})();
+</script>
 {% endblock %}

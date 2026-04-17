@@ -34,12 +34,16 @@
           </div>
           <div class="flex flex-wrap items-center gap-4 text-sm text-surface-500">
             <span>Copy: {{ res.game_copy.copy_label }}</span>
-            <span>Pickup: {{ res.pickup_slot.date|date:"D, M j" }} {{ res.pickup_slot.start_time|time:"g:i A" }}</span>
-            <span>Return by: {{ res.return_slot.date|date:"D, M j" }} {{ res.return_slot.start_time|time:"g:i A" }}</span>
+            <span>Pickup: {{ res.display_pickup.date|date:"D, M j" }} {{ res.display_pickup.start_time|time:"g:i A" }} - {{ res.display_pickup.end_time|time:"g:i A" }}</span>
+            <span>Return by: {{ res.display_return.date|date:"D, M j" }} {{ res.display_return.start_time|time:"g:i A" }} - {{ res.display_return.end_time|time:"g:i A" }}</span>
           </div>
         </div>
 
-        {% if res.status == 'confirmed' %}
+        {% if res.is_fully_checked_out %}
+          <div class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Checked out
+          </div>
+        {% elif res.status == 'confirmed' %}
         <div id="cancel-{{ res.pk }}">
           <form method="post" action="{% url 'core:cancel_reservation' res.pk %}"
                 hx-post="{% url 'core:cancel_reservation' res.pk %}"
@@ -51,6 +55,10 @@
             </button>
           </form>
         </div>
+        {% elif res.status == 'no_show' %}
+          <div class="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
+            No-show
+          </div>
         {% endif %}
       </div>
     </div>

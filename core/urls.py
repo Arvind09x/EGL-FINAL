@@ -37,6 +37,7 @@ urlpatterns = [
     path("desk/walk-in/", views.desk_walk_in, name="desk_walk_in"),
     path("desk/deposit/<int:charge_id>/<str:action>/", views.desk_deposit, name="desk_deposit"),
     path("desk/override/", views.desk_override, name="desk_override"),
+    path("desk/logs/", views.admin_logs, name="admin_logs"),
 
     # ── Fees & incidents ────────────────────────────────────
     path("desk/incident/<int:checkout_id>/", views.log_incident, name="log_incident"),

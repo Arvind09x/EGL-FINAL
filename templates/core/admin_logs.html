@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Admin Logs & Ledger — Eeshto{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-surface-900"> Admin Logs & Ledger</h1>
+      <p class="text-surface-500 mt-1">Track checkouts, deposits, and settle balances</p>
+    </div>
+    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">← Back to Desk</a>
+  </div>
+
+  <!-- Settle Balances -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Balances Table -->
+    <div class="glass rounded-2xl p-6">
+      <h2 class="text-xl font-semibold text-surface-900 mb-4">Member Balances</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+          <thead>
+            <tr class="border-b border-surface-200">
+              <th class="pb-3 font-semibold text-surface-600 font-medium">Admin</th>
+              <th class="pb-3 font-semibold text-surface-600 font-medium text-right">Collected</th>
+              <th class="pb-3 font-semibold text-surface-600 font-medium text-right">Refunded</th>
+              <th class="pb-3 font-semibold text-surface-600 font-medium text-right hover:text-surface-800 cursor-help" title="Positive = Administrator has library capital. Negative = Administrator used personal capital.">Net Balance</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-200">
+            {% for b in balances %}
+            <tr class="hover:bg-surface-50">
+              <td class="py-3 text-surface-900 font-medium">{{ b.display_name }}</td>
+              <td class="py-3 text-surface-500 text-right">₹{{ b.collected }}</td>
+              <td class="py-3 text-surface-500 text-right">₹{{ b.refunded }}</td>
+              <td class="py-3 text-right font-bold {% if b.net > 0 %}text-emerald-600{% elif b.net < 0 %}text-red-500{% else %}text-surface-400{% endif %}">
+                {% if b.net > 0 %}+{% endif %}₹{{ b.net }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="py-4 text-center text-surface-500">No balances recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Settlement Actions -->
+    <div class="glass rounded-2xl p-6 bg-emerald-50/50 border-emerald-100">
+      <h2 class="text-xl font-semibold text-emerald-900 mb-4">Settlement Plan</h2>
+      <p class="text-sm text-emerald-700 mb-4">Who needs to pay whom to bring all administrative net balances back to zero.</p>
+      
+      <div class="space-y-3">
+        {% for s in settlements %}
+        <div class="flex items-center justify-between p-3 rounded-lg bg-white border border-emerald-100 shadow-sm">
+          <span class="text-sm font-medium text-surface-900">{{ s.from }}  →  {{ s.to }}</span>
+          <span class="text-emerald-700 font-bold">₹{{ s.amount }}</span>
+        </div>
+        {% empty %}
+        <div class="p-4 text-center text-emerald-600/70 border border-emerald-100 border-dashed rounded-xl">
+          All member balances are settled nicely! 🎉
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Checkout Logs -->
+  <section class="glass rounded-2xl p-6">
+    <h2 class="text-xl font-semibold text-surface-900 mb-4">Transaction Log</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm whitespace-nowrap">
+        <thead>
+          <tr class="border-b border-surface-200">
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Time / Date</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Borrower</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Game</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Deposit Paid</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Admin (Received Deposit)</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Admin (Paid Deposit Back)</th>
+            <th class="pb-3 font-semibold text-surface-600 font-medium">Status / Net Refund</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-200">
+          {% for t in transactions %}
+          <tr class="hover:bg-surface-50">
+            <td class="py-3 text-surface-500">{{ t.time|date:"M j, g:i A" }}</td>
+            <td class="py-3 text-surface-900 font-medium">{{ t.borrower }}</td>
+            <td class="py-3 text-surface-500">{{ t.game }}</td>
+            <td class="py-3 text-surface-900">₹{{ t.deposit_paid }}</td>
+            <td class="py-3 text-surface-500">{{ t.checkout_admin }}</td>
+            <td class="py-3 text-surface-500">{{ t.return_admin }}</td>
+            <td class="py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                {% if t.status == 'Refunded' %}bg-emerald-50 text-emerald-700
+                {% elif t.status == 'Collected' %}bg-amber-50 text-amber-700
+                {% else %}bg-surface-100 text-surface-600{% endif %}">
+                {{ t.status }}
+              </span>
+              {% if t.status == 'Refunded' %}
+              <span class="text-xs text-surface-400 ml-2">(₹{{ t.amount_refunded }})</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="py-4 text-center text-surface-500">No checkout transactions found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

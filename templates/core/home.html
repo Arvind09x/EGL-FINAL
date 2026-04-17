@@ -5,28 +5,34 @@
 <div class="animate-slide-up">
   <!-- Hero -->
   <section class="text-center py-20 space-y-8">
-    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
+    <div
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
       <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-      {% if next_slot %}Next session: {{ next_slot.date }} at {{ next_slot.start_time }}{% else %}Check back for upcoming sessions{% endif %}
+      {% if next_slot %}Next session: {{ next_slot.date }} at {{ next_slot.start_time }}{% else %}Check back for
+      upcoming sessions{% endif %}
     </div>
 
     <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight">
       <span class="gradient-text">Welcome to</span><br>
-      <span class="text-surface-900">Eeshto</span>
+      <span class="text-surface-900">Eeshto Games Library</span>
     </h1>
 
     <p class="text-lg text-surface-500 max-w-2xl mx-auto leading-relaxed">
-      Browse board games in the Eeshto Games library. Reserve a game for your next session, pick it up, and return it. All managed in one place.
+      Browse board games in the Eeshto Games library. Reserve a game for your next session, pick it up, and return it.
+      All managed in one place.
     </p>
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-      <a href="{% url 'core:available_games' %}" class="px-8 py-3.5 rounded-xl text-base font-semibold btn-primary text-white transition-all">
+      <a href="{% url 'core:available_games' %}"
+        class="px-8 py-3.5 rounded-xl text-base font-semibold btn-primary text-white transition-all">
         Browse Available Games →
       </a>
-      <a href="{% url 'core:all_games' %}" class="px-8 py-3.5 rounded-xl text-base font-semibold border border-surface-300 text-surface-700 hover:bg-surface-100 hover:border-surface-400 transition-all">
+      <a href="{% url 'core:all_games' %}"
+        class="px-8 py-3.5 rounded-xl text-base font-semibold border border-surface-300 text-surface-700 hover:bg-surface-100 hover:border-surface-400 transition-all">
         View Full Catalog
       </a>
-      <a href="{% url 'core:policy' %}" class="px-8 py-3.5 rounded-xl text-base font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all">
+      <a href="{% url 'core:policy' %}"
+        class="px-8 py-3.5 rounded-xl text-base font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all">
         📋 Library Policy
       </a>
     </div>
@@ -37,7 +43,8 @@
     <div class="glass rounded-2xl p-6 space-y-3 card-hover">
       <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-2xl">📅</div>
       <h3 class="text-lg font-bold text-surface-900">Sessions</h3>
-      <p class="text-surface-500 text-sm leading-relaxed">Tuesday & Friday, 6:30 – 7:30 PM IST. Booking opens every Monday at 8 AM.</p>
+      <p class="text-surface-500 text-sm leading-relaxed">Tuesday & Friday, 6:30 – 7:30 PM IST. Booking opens every
+        Monday at 8 AM.</p>
     </div>
     <div class="glass rounded-2xl p-6 space-y-3 card-hover">
       <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-2xl">📍</div>
@@ -47,7 +54,8 @@
     <div class="glass rounded-2xl p-6 space-y-3 card-hover">
       <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl">🎯</div>
       <h3 class="text-lg font-bold text-surface-900">How It Works</h3>
-      <p class="text-surface-500 text-sm leading-relaxed">Sign in with your Ashoka email → Reserve a game → Pick up at the session → Return by the next slot.</p>
+      <p class="text-surface-500 text-sm leading-relaxed">Sign in with your Ashoka email → Reserve a game → Pick up at
+        the session → Return by the next slot.</p>
     </div>
   </section>
 </div>

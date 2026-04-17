@@ -35,7 +35,7 @@
             <span class="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-sm font-medium">{{ game.category }}</span>
           {% endif %}
           {% if game.security_deposit %}
-            <span class="text-surface-400 text-sm">Security Deposit: ₹{{ game.security_deposit }}</span>
+            <span class="text-surface-900 bg-yellow-200 px-2 py-1 rounded text-sm font-semibold">Security Deposit: ₹{{ game.security_deposit }}</span>
           {% endif %}
         </div>
       </div>
@@ -68,10 +68,13 @@
                 <div>
                   <p class="text-sm font-medium text-surface-900">Copy {{ copy.copy_label }}</p>
                   <p class="text-xs text-surface-500">{{ copy.get_condition_display }}</p>
+                  {% if copy.notes %}
+                    <p class="text-xs text-surface-500 mt-1 italic max-w-sm">Notes: {{ copy.notes }}</p>
+                  {% endif %}
                 </div>
               </div>
 
-              {% if copy.is_available and copy.condition != 'lost' and copy.condition != 'damaged' %}
+              {% if copy.condition != 'lost' and copy.condition != 'damaged' %}
                 {% if user.is_authenticated %}
                   <div class="flex flex-wrap gap-2 justify-end">
                     {% for slot_info in slots_with_status %}

@@ -118,6 +118,7 @@ class GameCopy(models.Model):
     condition = models.CharField(
         max_length=10, choices=Condition.choices, default=Condition.GOOD
     )
+    notes = models.TextField(blank=True, help_text="Public condition notes.")
     is_available = models.BooleanField(default=True)
 
     class Meta:
@@ -248,6 +249,13 @@ class Checkout(models.Model):
         null=True,
         related_name="handled_checkouts",
     )
+    return_member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="handled_returns",
+    )
     pickup_location = models.CharField(
         max_length=255,
         default="Student Commons, 2nd floor of the mess, near the couches between the meeting rooms",
@@ -256,12 +264,11 @@ class Checkout(models.Model):
     deposit_status = models.CharField(
         max_length=20,
         choices=[
-            ("pending", "Pending"),
             ("collected", "Collected"),
             ("refunded", "Refunded"),
             ("waived", "Waived"),
         ],
-        default="pending",
+        default="collected",
     )
 
     due_date_slot = models.ForeignKey(
@@ -304,7 +311,6 @@ class Charge(models.Model):
         COLLECTED = "collected", "Collected"
         REFUNDED = "refunded", "Refunded"
         PAID = "paid", "Paid"
-        UNPAID = "unpaid", "Unpaid"
         WAIVED = "waived", "Waived"
 
     user = models.ForeignKey(
@@ -317,7 +323,7 @@ class Charge(models.Model):
         max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
     )
     status = models.CharField(
-        max_length=10, choices=ChargeStatus.choices, default=ChargeStatus.UNPAID
+        max_length=10, choices=ChargeStatus.choices, default=ChargeStatus.PAID
     )
     checkout = models.ForeignKey(
         Checkout,
