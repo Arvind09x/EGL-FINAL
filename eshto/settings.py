@@ -15,11 +15,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-fallback-key")
-DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+DEBUG = False
+
 ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
+    "eeshtogameslibrary.pythonanywhere.com",
+    "localhost",
+    "127.0.0.1",
 ]
 
 # ──────────────────────────────────────────────
@@ -82,10 +83,10 @@ WSGI_APPLICATION = "eshto.wsgi.application"
 # Database
 # ──────────────────────────────────────────────
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "/home/eeshtogameslibrary/EGL-FINAL/db.sqlite3",
+    }
 }
 
 # ──────────────────────────────────────────────
