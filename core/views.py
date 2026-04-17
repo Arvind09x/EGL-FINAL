@@ -626,6 +626,10 @@ def admin_logs(request):
         deposit_charge = next((c for c in co.charges.all() if c.charge_type == Charge.ChargeType.DEPOSIT), None)
         deposit_amount = deposit_charge.amount if deposit_charge else Decimal('0')
         
+        # Senior admins don't pay security deposits
+        if co.borrower.is_senior_admin:
+            deposit_amount = Decimal('0')
+        
         late_fee = next((c for c in co.charges.all() if c.charge_type == Charge.ChargeType.LATE_FEE), None)
         late_fee_amount = late_fee.amount if late_fee and late_fee.status == Charge.ChargeStatus.PAID else Decimal('0')
         
