@@ -61,6 +61,11 @@ def policy(request):
     return render(request, "core/policy.html")
 
 
+def pixel_reveal(request):
+    """Secret unlinked traitor reveal page."""
+    return render(request, "core/pixel.html")
+
+
 # =====================================================================
 # B3-1  All Games
 # =====================================================================

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Admin Logs & Ledger — Eeshto{% endblock %}
+{% block title %}Admin Logs & Ledger - Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-3xl font-bold text-surface-900"> Admin Logs & Ledger</h1>
+      <h1 class="text-3xl font-bold text-surface-900">Admin Logs & Ledger</h1>
       <p class="text-surface-500 mt-1">Track checkouts, deposits, and settle balances</p>
     </div>
-    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">← Back to Desk</a>
+    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all"><- Back to Desk</a>
   </div>
 
   <!-- Settle Balances -->
@@ -52,12 +52,12 @@
       <div class="space-y-3">
         {% for s in settlements %}
         <div class="flex items-center justify-between p-3 rounded-lg bg-white border border-emerald-100 shadow-sm">
-          <span class="text-sm font-medium text-surface-900">{{ s.from }}  →  {{ s.to }}</span>
+          <span class="text-sm font-medium text-surface-900">{{ s.from }}  ->  {{ s.to }}</span>
           <span class="text-emerald-700 font-bold">₹{{ s.amount }}</span>
         </div>
         {% empty %}
         <div class="p-4 text-center text-emerald-600/70 border border-emerald-100 border-dashed rounded-xl">
-          All member balances are settled nicely! 🎉
+          All member balances are settled nicely!
         </div>
         {% endfor %}
       </div>

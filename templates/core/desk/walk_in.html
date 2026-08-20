@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Walk-in Checkout — Eeshto{% endblock %}
+{% block title %}Walk-in Checkout - Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8 max-w-2xl mx-auto">
   <div class="flex items-center gap-3">
-    <a href="{% url 'core:member_desk' %}" class="text-surface-500 hover:text-surface-800 transition-colors">← Desk</a>
+    <a href="{% url 'core:member_desk' %}" class="text-surface-500 hover:text-surface-800 transition-colors"><- Desk</a>
     <h1 class="text-3xl font-bold text-surface-900">Walk-in Checkout</h1>
   </div>
 
@@ -30,7 +30,7 @@
       <label class="block text-sm font-medium text-surface-700 mb-2">Available Copy</label>
       <select name="copy_id" required class="w-full px-4 py-3 rounded-xl bg-surface-50 border border-surface-300 text-surface-800 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all">
         {% for copy in available_copies %}
-          <option value="{{ copy.pk }}">{{ copy.game_title.name }} [{{ copy.copy_label }}] — {{ copy.get_condition_display }}</option>
+          <option value="{{ copy.pk }}">{{ copy.game_title.name }} [{{ copy.copy_label }}] - {{ copy.get_condition_display }}</option>
         {% endfor %}
       </select>
     </div>

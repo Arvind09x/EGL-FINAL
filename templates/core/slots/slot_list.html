@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Slot Management — Eeshto{% endblock %}
+{% block title %}Slot Management - Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
   <div class="flex items-center justify-between">
     <h1 class="text-3xl font-bold text-surface-900">Slot Management</h1>
-    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">← Back to Desk</a>
+    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all"><- Back to Desk</a>
   </div>
 
   <div class="glass rounded-2xl overflow-hidden">
@@ -24,7 +24,7 @@
         <tr class="hover:bg-surface-50 transition-colors" id="slot-{{ slot.pk }}">
           <td class="p-4 text-surface-900 font-medium">{{ slot.date|date:"M j, Y" }}</td>
           <td class="p-4 text-surface-500">{{ slot.date|date:"l" }}</td>
-          <td class="p-4 text-surface-700">{{ slot.start_time|time:"g:i A" }} – {{ slot.end_time|time:"g:i A" }}</td>
+          <td class="p-4 text-surface-700">{{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}</td>
           <td class="p-4" id="status-{{ slot.pk }}">
             {% if slot.is_cancelled %}
               <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">Cancelled</span>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}CONGRATULATIONS!{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-4 text-center">
+
+  <!-- Big Red Heading -->
+  <h1 class="text-5xl sm:text-6xl font-black text-red-600 tracking-tight mb-8">
+    CONGRATULATIONS!
+  </h1>
+
+  <!-- Plain Simple Text -->
+  <div class="space-y-4 text-base sm:text-lg text-surface-700 leading-relaxed max-w-2xl mx-auto mb-10">
+    <p>
+      You’ve worked together and discovered the impostor amongst your ranks. A betrayal of the highest order from one of the faces you first met this very night.
+    </p>
+    <p>
+      You might have had suspicions, but now you have proof.
+    </p>
+  </div>
+
+  <!-- Centered Picture of Nitin -->
+  <div class="my-8 flex justify-center">
+    <div class="w-72 sm:w-80 rounded-2xl overflow-hidden shadow-lg border border-surface-300 bg-surface-100">
+      <img 
+        src="{% static 'images/nitin.jpg' %}" 
+        alt="Nitin"
+        class="w-full h-auto object-cover block"
+      />
+    </div>
+  </div>
+
+  <!-- Traitor Text -->
+  <div class="space-y-3 mt-8">
+    <h2 class="text-2xl sm:text-3xl font-bold text-surface-900">
+      Your traitor: Nitin
+    </h2>
+
+    <!-- Emojis -->
+    <div class="text-3xl sm:text-4xl tracking-wider pt-2">
+      😔✌️☹️🔪🩸
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -6,10 +6,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Eeshto Games Library — Borrow board games at Ashoka University">
+  <meta name="description" content="Eeshto Games Library - Borrow board games at Ashoka University">
   <title>{% block title %}Eeshto Games Library{% endblock %}</title>
 
-  <!-- Tailwind CSS via CDN (dev setup — P0-3) -->
+  <!-- Tailwind CSS via CDN (dev setup - P0-3) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -243,7 +243,7 @@
   {% for r in user.restrictions.all %}
   {% if r.is_active %}
   <div class="bg-red-50 border-b border-red-200 px-4 py-3 text-center">
-    <span class="text-red-700 text-sm font-medium">⚠ Your account is restricted: {{ r.reason }} (until {{
+    <span class="text-red-700 text-sm font-medium">Your account is restricted: {{ r.reason }} (until {{
       r.end_date|default:"permanently" }})</span>
   </div>
   {% endif %}
@@ -274,9 +274,8 @@
   <footer class="border-t border-surface-200 mt-auto bg-white/60">
     <div
       class="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-surface-500">
-      <span>© 2026 Eeshto Games Library — Ashoka University</span>
+      <span>© 2026 Eeshto Games Library - Ashoka University</span>
       <span class="flex items-center gap-2">
-        <span class="inline-block w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
         Pickup: Student Commons, 2nd floor
       </span>
     </div>

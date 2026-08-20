@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Reservations — Eeshto{% endblock %}
+{% block title %}My Reservations - Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
@@ -7,13 +7,13 @@
 
   {% if restriction %}
   <div class="glass rounded-2xl p-5 border-red-300 border bg-red-50">
-    <p class="text-red-700 font-semibold">⚠ You are restricted: {{ restriction.reason }}</p>
+    <p class="text-red-700 font-semibold">You are restricted: {{ restriction.reason }}</p>
     <p class="text-red-500 text-sm mt-1">Until {{ restriction.end_date|default:"permanent" }}. You cannot make new reservations.</p>
   </div>
   {% endif %}
 
   <div class="glass rounded-xl p-4 flex items-start gap-3 text-sm">
-    <span class="text-lg">📍</span>
+    <span class="font-semibold text-surface-700">Pickup Location:</span>
     <span class="text-surface-500">{{ location }}</span>
   </div>
 
@@ -64,9 +64,8 @@
     </div>
     {% empty %}
     <div class="text-center py-16 text-surface-500">
-      <span class="text-5xl block mb-4">📋</span>
       <p>No reservations yet.</p>
-      <a href="{% url 'core:available_games' %}" class="text-red-500 hover:text-red-600 mt-2 inline-block font-medium">Browse available games →</a>
+      <a href="{% url 'core:available_games' %}" class="text-red-500 hover:text-red-600 mt-2 inline-block font-medium">Browse available games -></a>
     </div>
     {% endfor %}
   </div>

@@ -109,14 +109,14 @@ def get_same_weekday_next_week(slot):
 def is_booking_window_open(pickup_slot):
     """
     Reservations can only be created between Monday 08:00 IST of the
-    week of the pickup slot and 1 hour before the slot starts.
+    week of the pickup slot and the slot start time.
     """
     now = _now_ist()
     # Monday of the pickup slot's week (weekday 0 = Monday)
     slot_date = pickup_slot.date
     monday = slot_date - timedelta(days=slot_date.weekday())
     window_open = datetime.combine(monday, datetime.min.time().replace(hour=8), tzinfo=IST)
-    window_close = pickup_slot.start_datetime - timedelta(hours=1)
+    window_close = pickup_slot.start_datetime
     return window_open <= now <= window_close
 
 

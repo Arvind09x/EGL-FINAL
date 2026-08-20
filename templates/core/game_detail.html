@@ -81,7 +81,7 @@
                       {% is_reserved reserved_pairs copy.pk slot_info.slot.pk as already_reserved %}
                       {% if already_reserved %}
                         <button disabled class="px-4 py-2 rounded-lg text-sm font-semibold bg-surface-200 text-surface-400 cursor-not-allowed border border-surface-300 opacity-50 pointer-events-none line-through">
-                          {{ slot_info.slot.date|date:"D M j" }} — Reserved
+                          {{ slot_info.slot.date|date:"D M j" }} - Reserved
                         </button>
                       {% elif slot_info.is_open %}
                         <button type="button"
@@ -91,7 +91,7 @@
                         </button>
                       {% else %}
                         <button disabled class="px-4 py-2 rounded-lg text-sm font-semibold bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200 opacity-60">
-                          {{ slot_info.slot.date|date:"D M j" }} (Opens Mon 8 AM)
+                          {{ slot_info.slot.date|date:"D M j" }} (Reservations closed)
                         </button>
                       {% endif %}
                     {% endfor %}

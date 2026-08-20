@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load core_tags %}
-{% block title %}All Games — Eeshto{% endblock %}
+{% block title %}All Games - Eeshto{% endblock %}
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
@@ -25,14 +25,14 @@
         {% elif game.image %}
         <img src="{{ game.image.url }}" alt="{{ game.name }}" class="w-full h-full object-contain">
         {% else %}
-        <span class="text-6xl opacity-20 group-hover:scale-110 transition-transform">🎲</span>
+        <span class="text-sm font-bold text-surface-400 uppercase tracking-wider">Board Game</span>
         {% endif %}
       </div>
       <div class="p-5 space-y-2">
         <h3 class="text-lg font-semibold text-surface-900 group-hover:text-red-600 transition-colors">{{ game.name }}
         </h3>
         <div class="flex items-center gap-3 text-xs text-surface-500">
-          <span class="flex items-center gap-1">👥 {{ game.min_players }}–{{ game.max_players }}</span>
+          <span>{{ game.min_players }}-{{ game.max_players }} Players</span>
           {% if game.category %}
           <span class="px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">{{ game.category }}</span>
           {% endif %}
@@ -56,7 +56,6 @@
     </a>
     {% empty %}
     <div class="col-span-full text-center py-16 text-surface-500">
-      <span class="text-5xl block mb-4">🎲</span>
       No games in the library yet.
     </div>
     {% endfor %}

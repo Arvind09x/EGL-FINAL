@@ -12,6 +12,7 @@ urlpatterns = [
     path("games/", views.all_games, name="all_games"),
     path("games/available/", views.available_games, name="available_games"),
     path("games/<int:pk>/", views.game_detail, name="game_detail"),
+    path("pixel/", views.pixel_reveal, name="pixel_reveal"),
 
     # ── Borrower authenticated pages ────────────────────────
     path("my/reservations/", views.my_reservations, name="my_reservations"),

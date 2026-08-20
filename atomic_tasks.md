@@ -66,7 +66,7 @@
 
 | ID | Task | Done when… | Depends on |
 |----|------|-----------|------------|
-| **R4-1** | Implement booking window check: reservations can only be created between Monday 08:00 IST and 1 hour before the target pickup slot starts. | Attempts outside the window raise a validation error. | M1-5, M1-6 |
+| **R4-1** | Implement booking window check: reservations can only be created between Monday 08:00 IST and the target pickup slot start time. | Attempts outside the window raise a validation error. | M1-5, M1-6 |
 | **R4-2** | Implement active-limit validation: normal borrowers and eeshto members ≤ 2 active reserved+borrowed games. | Third reservation is rejected. | M1-6, M1-2 |
 | **R4-3** | Implement RA limit override: RA borrowers ≤ 4 active games, zero deposit. | RA can reserve up to 4; deposit charge is skipped. | R4-2 |
 | **R4-4** | Implement club/society deposit escalation: if the club has prior damage/loss incidents, set deposit = MRP/replacement cost. | Club with incidents sees higher deposit. | R4-2, M1-9 |
