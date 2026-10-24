@@ -11,6 +11,20 @@
   </div>
   {% endif %}
 
+  {% if probation %}
+  <div class="glass rounded-2xl p-5 border border-amber-200 bg-amber-50">
+    <p class="text-amber-800 font-semibold">You are on probation until {{ probation.end_date|date:"M j, Y" }}.</p>
+    <p class="text-amber-700 text-sm mt-1">Any further infraction while on probation will result in a ban from the library.</p>
+  </div>
+  {% endif %}
+
+  {% if total_due %}
+  <div class="glass rounded-2xl p-5 border border-amber-200 bg-amber-50">
+    <p class="text-amber-800 font-semibold">Outstanding dues: ₹{{ total_due }}</p>
+    <p class="text-amber-700 text-sm mt-1">You cannot borrow again until these are cleared. Pay by UPI at the desk.</p>
+  </div>
+  {% endif %}
+
   <!-- Active Checkouts -->
   <section>
     <h2 class="text-xl font-semibold text-surface-900 mb-4">Active Checkouts</h2>
@@ -29,15 +43,30 @@
               <div class="flex flex-wrap items-center gap-4 text-sm text-surface-500">
                 <span>Copy: {{ co.game_copy.copy_label }}</span>
                 <span>Checked out: {{ co.checkout_time|date:"D, M j g:i A" }}</span>
-                {% if co.due_date_slot %}
+                {% if co.due_slot %}
                   <span class="{% if co.is_lost_candidate %}text-red-600{% else %}text-amber-600{% endif %} font-medium">
-                    Due: {{ co.due_date_slot.date|date:"D, M j" }}
+                    Due: {{ co.due_slot.date|date:"D, M j" }}, {{ co.due_slot.start_time|time:"g:i A" }}
                   </span>
+                {% else %}
+                  <span class="text-surface-500 font-medium">Due: next return slot (to be announced)</span>
                 {% endif %}
                 <span>Deposit: {{ co.get_deposit_status_display }}</span>
               </div>
               <p class="text-sm text-surface-500">Pickup: {{ co.pickup_location }}</p>
+              <p class="text-xs text-surface-400">Late fee: INR 25 per return slot missed. Games must stay inside University premises.</p>
             </div>
+            {% if co.can_report_damage %}
+            <details class="sm:max-w-sm w-full">
+              <summary class="cursor-pointer text-sm font-medium text-red-600">Report existing damage</summary>
+              <form method="post" action="{% url 'core:report_damage' co.pk %}" class="mt-3 space-y-2">
+                {% csrf_token %}
+                <textarea name="description" rows="3" required placeholder="Describe damage or missing pieces that were already there..."
+                          class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none"></textarea>
+                <p class="text-xs text-surface-400">Open until {{ co.report_deadline|date:"g:i A" }} (3 hours after pickup). After that you are responsible for all components.</p>
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">Submit Report</button>
+              </form>
+            </details>
+            {% endif %}
           </div>
         </div>
         {% endif %}
@@ -67,6 +96,7 @@
             <td class="p-4">
               <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
                 {% if charge.status == 'paid' or charge.status == 'collected' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                {% elif charge.status == 'unpaid' %}bg-red-50 text-red-700 border border-red-200
                 {% elif charge.status == 'refunded' or charge.status == 'waived' %}bg-surface-100 text-surface-500 border border-surface-300
                 {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
                 {{ charge.get_status_display }}
@@ -97,7 +127,12 @@
               <span class="text-surface-900 font-medium">{{ co.game_copy.game_title.name }}</span>
               <span class="text-surface-400">{{ co.checkout_time|date:"M j" }} -> {{ co.return_time|date:"M j" }}</span>
             </div>
-            <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">Returned</span>
+            <span class="flex items-center gap-3">
+              {% if co.refund_due_by and co.deposit_status == 'collected' %}
+                <span class="text-xs text-surface-500">Deposit refund due by {{ co.refund_due_by|date:"M j" }}</span>
+              {% endif %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">Returned</span>
+            </span>
           </div>
         </div>
         {% endif %}

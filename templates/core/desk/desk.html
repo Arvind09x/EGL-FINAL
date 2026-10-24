@@ -3,14 +3,15 @@
 
 {% block content %}
 <div class="animate-slide-up space-y-8">
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between flex-wrap gap-3">
     <div>
       <h1 class="text-3xl font-bold text-surface-900">Member Desk</h1>
       <p class="text-surface-500 mt-1">Manage pickups, returns, and walk-ins</p>
     </div>
-    <div class="flex gap-3">
+    <div class="flex flex-wrap gap-3">
       <a href="{% url 'core:desk_walk_in' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">+ Walk-in</a>
       <a href="{% url 'core:slot_list' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Slots</a>
+      <a href="{% url 'core:desk_borrower' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Borrowers</a>
       <a href="{% url 'core:admin_logs' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all">Logs & Ledger</a>
     </div>
   </div>
@@ -21,11 +22,54 @@
     <div class="flex flex-wrap gap-2">
       {% for slot in todays_slots %}
         <span class="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
-          {{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}
+          {{ slot.get_slot_type_display }}: {{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}
         </span>
       {% endfor %}
     </div>
   </div>
+  {% endif %}
+
+  <!-- Pending requests (clubs, RAs, TAs/TFs) -->
+  {% if pending_requests %}
+  <section>
+    <h2 class="text-xl font-semibold text-surface-900 mb-4">Pending Requests</h2>
+    <div class="space-y-3">
+      {% for res in pending_requests %}
+      <div class="glass rounded-2xl p-5" id="request-{{ res.pk }}">
+        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div class="space-y-1 text-sm">
+            <div class="flex items-center gap-3">
+              <span class="text-surface-900 font-semibold">{{ res.user.email }}</span>
+              <span class="text-surface-500">-> {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]</span>
+            </div>
+            <p class="text-xs text-surface-400">
+              Pickup {{ res.pickup_slot.date|date:"D, M j" }} {{ res.pickup_slot.start_time|time:"g:i A" }}
+              | Return by {{ res.return_by_date|date:"M j" }}
+            </p>
+            <p class="text-surface-600">Purpose: {{ res.purpose }}</p>
+            <p class="text-surface-600">Contact: {{ res.poc_name }}, {{ res.poc_phone }}</p>
+            {% if res.rh_floor %}<p class="text-surface-600">RH and floor: {{ res.rh_floor }}</p>{% endif %}
+            {% if res.authorizing_email %}<p class="text-surface-600">Professor: {{ res.authorizing_email }}</p>{% endif %}
+          </div>
+          <div class="flex flex-wrap gap-2" id="request-actions-{{ res.pk }}">
+            <form method="post" action="{% url 'core:desk_request_decision' res.pk 'approve' %}"
+                  hx-post="{% url 'core:desk_request_decision' res.pk 'approve' %}"
+                  hx-target="#request-actions-{{ res.pk }}" hx-swap="innerHTML">
+              {% csrf_token %}
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all">Approve</button>
+            </form>
+            <form method="post" action="{% url 'core:desk_request_decision' res.pk 'reject' %}"
+                  hx-post="{% url 'core:desk_request_decision' res.pk 'reject' %}"
+                  hx-target="#request-actions-{{ res.pk }}" hx-swap="innerHTML">
+              {% csrf_token %}
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">Reject</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
 
   <!-- Pickups (confirmed reservations for today) -->
@@ -39,8 +83,14 @@
             <div class="flex items-center gap-3">
               <span class="text-surface-900 font-semibold">{{ res.user.email }}</span>
               <span class="text-surface-500 text-sm">-> {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]</span>
+              {% if res.on_probation %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">PROBATION</span>
+              {% endif %}
             </div>
-            <p class="text-xs text-surface-400">Slot: {{ res.pickup_slot.start_time|time:"g:i A" }} | Return by: {{ res.return_slot.date|date:"M j" }}</p>
+            <p class="text-xs text-surface-400">Slot: {{ res.pickup_slot.start_time|time:"g:i A" }} | Return by: {% if res.return_slot %}{{ res.return_slot.date|date:"M j" }}{% else %}to be announced{% endif %}</p>
+            {% if res.blockers %}
+              <p class="text-xs text-red-600">{{ res.blockers|join:" " }}</p>
+            {% endif %}
           </div>
           <div class="flex flex-wrap gap-2" id="actions-{{ res.pk }}">
             <form method="post" action="{% url 'core:desk_checkout' res.pk %}"
@@ -48,6 +98,9 @@
                   hx-target="#actions-{{ res.pk }}" hx-swap="innerHTML"
                   class="flex items-center gap-2">
               {% csrf_token %}
+              {% if res.blockers %}
+              <input type="text" name="override_reason" placeholder="Override reason" class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+              {% endif %}
               <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all">Check Out</button>
             </form>
             <form method="post" action="{% url 'core:desk_no_show' res.pk %}"
@@ -75,33 +128,58 @@
       <div class="glass rounded-2xl p-5 {% if co.is_lost_candidate %}border border-red-300{% endif %}" id="checkout-{{ co.pk }}">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-1">
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <span class="text-surface-900 font-semibold">{{ co.borrower.email }}</span>
               <span class="text-surface-500 text-sm">-> {{ co.game_copy.game_title.name }} [{{ co.game_copy.copy_label }}]</span>
-              {% if co.is_lost_candidate %}
+              {% if co.on_probation %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">PROBATION</span>
+              {% endif %}
+              {% if co.lost_charged %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">LOST</span>
+              {% elif co.is_lost_candidate %}
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">LOST CANDIDATE</span>
               {% endif %}
             </div>
             <p class="text-xs text-surface-400">
               Out since: {{ co.checkout_time|date:"M j, g:i A" }} |
-              {% if co.due_date_slot %}Due: {{ co.due_date_slot.date|date:"M j" }}{% endif %} |
+              {% if co.due_slot %}Due: {{ co.due_slot.date|date:"M j" }}{% else %}Due: next return slot{% endif %} |
               Deposit: {{ co.get_deposit_status_display }}
+              {% if co.late_fee_total %}| Late fees: ₹{{ co.late_fee_total }}{% endif %}
             </p>
           </div>
           <div class="flex flex-wrap gap-2" id="co-actions-{{ co.pk }}">
             <form method="post" action="{% url 'core:desk_return' co.pk %}"
                   hx-post="{% url 'core:desk_return' co.pk %}"
                   hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML"
-                  class="flex items-center gap-2">
+                  class="flex items-center gap-3">
               {% csrf_token %}
+              <label class="flex items-center gap-1.5 text-xs text-surface-500">
+                <input type="checkbox" name="refund" checked> Refund deposit now
+              </label>
               <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold btn-primary text-white transition-all">Return</button>
             </form>
-            {% if co.is_lost_candidate %}
+            <a href="{% url 'core:log_incident' co.pk %}" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">Log Damage</a>
+            {% if co.lost_charged %}
+              <form method="post" action="{% url 'core:resolve_lost' co.pk %}" class="flex items-center gap-2"
+                    hx-post="{% url 'core:resolve_lost' co.pk %}" hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML">
+                {% csrf_token %}
+                <select name="method" class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800">
+                  <option value="paid">MRP paid</option>
+                  <option value="replaced">Replacement supplied</option>
+                  <option value="waived">Waived by society</option>
+                </select>
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-all">Resolve Lost</button>
+              </form>
+            {% else %}
             <form method="post" action="{% url 'core:finalize_lost' co.pk %}"
                   hx-post="{% url 'core:finalize_lost' co.pk %}"
-                  hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML">
+                  hx-target="#co-actions-{{ co.pk }}" hx-swap="innerHTML"
+                  class="flex items-center gap-2">
               {% csrf_token %}
-              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-all">Finalize Lost</button>
+              {% if not co.game_copy.game_title.mrp %}
+              <input type="number" name="replacement_amount" step="0.01" min="0" required placeholder="MRP (INR)" class="w-28 px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+              {% endif %}
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold {% if co.is_lost_candidate %}bg-red-600 text-white hover:bg-red-700{% else %}bg-red-50 text-red-600 border border-red-200 hover:bg-red-100{% endif %} transition-all">Mark Lost</button>
             </form>
             {% endif %}
           </div>
@@ -114,6 +192,82 @@
       {% endfor %}
     </div>
   </section>
+
+  <!-- Deposit refunds due -->
+  {% if pending_refunds %}
+  <section>
+    <h2 class="text-xl font-semibold text-surface-900 mb-4">Deposit Refunds Due</h2>
+    <div class="space-y-3">
+      {% for charge in pending_refunds %}
+      <div class="glass rounded-2xl p-5 {% if charge.overdue %}border border-red-300{% endif %}">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="text-sm">
+            <span class="text-surface-900 font-semibold">{{ charge.user.email }}</span>
+            <span class="text-surface-500">- {{ charge.checkout.game_copy.game_title.name }} - ₹{{ charge.amount }}</span>
+            <p class="text-xs {% if charge.overdue %}text-red-600 font-semibold{% else %}text-surface-400{% endif %}">
+              Refund by {{ charge.checkout.refund_due_by|date:"M j" }}{% if charge.overdue %} (overdue){% endif %}
+            </p>
+          </div>
+          <div id="refund-{{ charge.pk }}">
+            <form method="post" action="{% url 'core:desk_deposit' charge.pk 'refund' %}"
+                  hx-post="{% url 'core:desk_deposit' charge.pk 'refund' %}"
+                  hx-target="#refund-{{ charge.pk }}" hx-swap="innerHTML">
+              {% csrf_token %}
+              <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all">Mark Refunded</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Open dues -->
+  {% if open_dues %}
+  <section>
+    <h2 class="text-xl font-semibold text-surface-900 mb-4">Unpaid Fees</h2>
+    <div class="glass rounded-2xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-surface-200">
+            <th class="text-left p-4 text-surface-500 font-medium">Borrower</th>
+            <th class="text-left p-4 text-surface-500 font-medium">Type</th>
+            <th class="text-left p-4 text-surface-500 font-medium">Game</th>
+            <th class="text-left p-4 text-surface-500 font-medium">Amount</th>
+            <th class="text-right p-4 text-surface-500 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+          {% for charge in open_dues %}
+          <tr class="hover:bg-surface-50 transition-colors">
+            <td class="p-4 text-surface-900">{{ charge.user.email }}</td>
+            <td class="p-4 text-surface-700">{{ charge.get_charge_type_display }}</td>
+            <td class="p-4 text-surface-500">{{ charge.checkout.game_copy.game_title.name|default:"-" }}</td>
+            <td class="p-4 text-surface-900">₹{{ charge.amount }}</td>
+            <td class="p-4 text-right">
+              <span class="inline-flex gap-2" id="due-{{ charge.pk }}">
+                <form method="post" action="{% url 'core:update_charge_status' charge.pk %}" class="inline"
+                      hx-post="{% url 'core:update_charge_status' charge.pk %}" hx-target="#due-{{ charge.pk }}" hx-swap="innerHTML">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="paid">
+                  <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all">Mark Paid</button>
+                </form>
+                <form method="post" action="{% url 'core:update_charge_status' charge.pk %}" class="inline"
+                      hx-post="{% url 'core:update_charge_status' charge.pk %}" hx-target="#due-{{ charge.pk }}" hx-swap="innerHTML">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="waived">
+                  <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Waive</button>
+                </form>
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Override form -->
   <section class="glass rounded-2xl p-6">

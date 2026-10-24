@@ -5,6 +5,8 @@ Covers task I8-2.
 CSV format (with header row):
     name, copy_count, security_deposit, category, min_players, max_players, description
 
+Optional columns: mrp, deposit_category (D/C/B/A/S; overrides security_deposit).
+
 Usage:
     python manage.py import_games games.csv
 """
@@ -37,6 +39,8 @@ class Command(BaseCommand):
                 min_players = int(row.get("min_players", 1))
                 max_players = int(row.get("max_players", 4))
                 description = row.get("description", "").strip()
+                mrp = float(row.get("mrp") or 0)
+                deposit_category = (row.get("deposit_category") or "").strip().upper()
 
                 title, t_created = GameTitle.objects.get_or_create(
                     name=name,
@@ -46,6 +50,8 @@ class Command(BaseCommand):
                         "min_players": min_players,
                         "max_players": max_players,
                         "description": description,
+                        "mrp": mrp,
+                        "deposit_category": deposit_category,
                     },
                 )
                 if t_created:

@@ -12,6 +12,7 @@ from .models import (
     BorrowerProfile,
     ClubSocietyEmailAllowlist,
     RAEmailAllowlist,
+    TAEmailAllowlist,
     User,
 )
 
@@ -28,6 +29,8 @@ def create_borrower_profile(sender, instance, created, **kwargs):
 
         if RAEmailAllowlist.objects.filter(email__iexact=email).exists():
             policy_type = BorrowerProfile.PolicyType.RA
+        elif TAEmailAllowlist.objects.filter(email__iexact=email).exists():
+            policy_type = BorrowerProfile.PolicyType.TA_TF
         elif ClubSocietyEmailAllowlist.objects.filter(email__iexact=email).exists():
             policy_type = BorrowerProfile.PolicyType.CLUB_SOCIETY
         elif instance.is_member:

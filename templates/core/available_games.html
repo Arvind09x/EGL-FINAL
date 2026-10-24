@@ -20,7 +20,7 @@
     <div class="flex flex-wrap gap-2">
       {% for slot in upcoming_slots %}
         <span class="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
-          {{ slot.date|date:"D, M j" }} · {{ slot.start_time|time:"g:i A" }}
+          {{ slot.get_slot_type_display }} · {{ slot.date|date:"D, M j" }} · {{ slot.start_time|time:"g:i A" }}
         </span>
       {% endfor %}
     </div>

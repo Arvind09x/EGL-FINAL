@@ -1,24 +1,24 @@
-name,copy_count,security_deposit,category,min_players,max_players,description
-Catan,2,300,Strategy,3,4,Trade and build settlements on the island of Catan. Collect resources and become the dominant force!
-Anti Monopoly,1,300,Strategy,2,6,The classic game flipped — compete as monopolists or free-market entrepreneurs.
-Shasn,1,300,Strategy,3,5,A political strategy game where you play as politicians running election campaigns.
-Poker Set,1,300,Card Game,2,10,A complete poker set with chips and cards for Texas Hold'em and more.
-Poker Chips,1,300,Accessory,2,10,Additional poker chips set for larger games.
-Monopoly,1,200,Classic,2,8,Buy properties and bankrupt your opponents in this timeless real estate trading game.
-Cards Vs Sanskaar,1,200,Party,4,10,An Indian party card game for hilarious and culturally-rich moments.
-DND Starter Pack,1,200,RPG,3,6,Everything you need to start your first Dungeons & Dragons adventure.
-Jenga,1,200,Dexterity,1,8,Remove blocks from the tower and stack them on top without letting it collapse!
-Risk,1,200,Strategy,2,6,Command armies and conquer territories in this classic game of global domination.
-Cluedo,1,200,Mystery,3,6,Solve the murder mystery — who did it, where, and with what weapon?
-Ticket to Ride,1,100,Strategy,2,5,Claim railway routes across the country and connect distant cities to earn points.
-Scrabble,1,100,Word Game,2,4,Form words on the board using letter tiles. The higher the score, the better!
-Pictureka,1,100,Party,2,6,Find hidden pictures and objects in a race against time.
-Stratego,1,100,Strategy,2,2,A battlefield strategy game of concealed pieces and tactical deception.
-Catan Extension Pack,1,100,Expansion,5,6,Extends Catan for 5-6 player games. Requires base Catan.
-Pictionary,1,100,Party,4,8,Draw clues and guess words before time runs out. A classic party game!
-Playing Cards,2,50,Card Game,2,10,Standard 52-card deck for endless card game possibilities.
-Fletter,1,50,Word Game,2,6,A fast-paced word game where you race to spell words from rolling letter dice.
-Ludo + Snakes and Ladders,1,50,Classic,2,4,Two classic board games in one set — roll the dice and race to the finish!
-Uno Flip,1,50,Card Game,2,10,UNO with a twist — flip the deck for a whole new set of cards and rules!
-UNO,2,50,Card Game,2,10,The classic card game of matching colors and numbers. Don't forget to say UNO!
-Weeping Farm,1,50,Strategy,2,4,A quirky farming card game with a dark twist.
+name,copy_count,security_deposit,category,min_players,max_players,description,mrp,deposit_category
+Catan,2,300,Strategy,3,4,Trade and build settlements on the island of Catan. Collect resources and become the dominant force!,,
+Anti Monopoly,1,300,Strategy,2,6,The classic game flipped — compete as monopolists or free-market entrepreneurs.,,
+Shasn,1,300,Strategy,3,5,A political strategy game where you play as politicians running election campaigns.,,
+Poker Set,1,300,Card Game,2,10,A complete poker set with chips and cards for Texas Hold'em and more.,,
+Poker Chips,1,300,Accessory,2,10,Additional poker chips set for larger games.,,
+Monopoly,1,200,Classic,2,8,Buy properties and bankrupt your opponents in this timeless real estate trading game.,,
+Cards Vs Sanskaar,1,200,Party,4,10,An Indian party card game for hilarious and culturally-rich moments.,,
+DND Starter Pack,1,200,RPG,3,6,Everything you need to start your first Dungeons & Dragons adventure.,,
+Jenga,1,200,Dexterity,1,8,Remove blocks from the tower and stack them on top without letting it collapse!,,
+Risk,1,200,Strategy,2,6,Command armies and conquer territories in this classic game of global domination.,,
+Cluedo,1,200,Mystery,3,6,"Solve the murder mystery — who did it, where, and with what weapon?",,
+Ticket to Ride,1,100,Strategy,2,5,Claim railway routes across the country and connect distant cities to earn points.,,
+Scrabble,1,100,Word Game,2,4,"Form words on the board using letter tiles. The higher the score, the better!",,
+Pictureka,1,100,Party,2,6,Find hidden pictures and objects in a race against time.,,
+Stratego,1,100,Strategy,2,2,A battlefield strategy game of concealed pieces and tactical deception.,,
+Catan Extension Pack,1,100,Expansion,5,6,Extends Catan for 5-6 player games. Requires base Catan.,,
+Pictionary,1,100,Party,4,8,Draw clues and guess words before time runs out. A classic party game!,,
+Playing Cards,2,50,Card Game,2,10,Standard 52-card deck for endless card game possibilities.,,
+Fletter,1,50,Word Game,2,6,A fast-paced word game where you race to spell words from rolling letter dice.,,
+Ludo + Snakes and Ladders,1,50,Classic,2,4,Two classic board games in one set — roll the dice and race to the finish!,,
+Uno Flip,1,50,Card Game,2,10,UNO with a twist — flip the deck for a whole new set of cards and rules!,,
+UNO,2,50,Card Game,2,10,The classic card game of matching colors and numbers. Don't forget to say UNO!,,
+Weeping Farm,1,50,Strategy,2,4,A quirky farming card game with a dark twist.,,

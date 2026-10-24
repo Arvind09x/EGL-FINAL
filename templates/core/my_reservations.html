@@ -12,6 +12,13 @@
   </div>
   {% endif %}
 
+  {% if probation %}
+  <div class="glass rounded-2xl p-5 border border-amber-200 bg-amber-50">
+    <p class="text-amber-800 font-semibold">You are on probation until {{ probation.end_date|date:"M j, Y" }}.</p>
+    <p class="text-amber-700 text-sm mt-1">Any further infraction while on probation will result in a ban from the library.</p>
+  </div>
+  {% endif %}
+
   <div class="glass rounded-xl p-4 flex items-start gap-3 text-sm">
     <span class="font-semibold text-surface-700">Pickup Location:</span>
     <span class="text-surface-500">{{ location }}</span>
@@ -26,7 +33,8 @@
             <h3 class="text-lg font-semibold text-surface-900">{{ res.game_copy.game_title.name }}</h3>
             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
               {% if res.status == 'confirmed' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-              {% elif res.status == 'cancelled' %}bg-surface-100 text-surface-500 border border-surface-300
+              {% elif res.status == 'cancelled' or res.status == 'rejected' %}bg-surface-100 text-surface-500 border border-surface-300
+              {% elif res.status == 'pending' %}bg-amber-50 text-amber-700 border border-amber-200
               {% elif res.status == 'no_show' %}bg-red-50 text-red-600 border border-red-200
               {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
               {{ res.get_status_display }}
@@ -34,16 +42,20 @@
           </div>
           <div class="flex flex-wrap items-center gap-4 text-sm text-surface-500">
             <span>Copy: {{ res.game_copy.copy_label }}</span>
-            <span>Pickup: {{ res.display_pickup.date|date:"D, M j" }} {{ res.display_pickup.start_time|time:"g:i A" }} - {{ res.display_pickup.end_time|time:"g:i A" }}</span>
-            <span>Return by: {{ res.display_return.date|date:"D, M j" }} {{ res.display_return.start_time|time:"g:i A" }} - {{ res.display_return.end_time|time:"g:i A" }}</span>
+            <span>Pickup: {{ res.pickup_slot.date|date:"D, M j" }} {{ res.pickup_slot.start_time|time:"g:i A" }} - {{ res.pickup_slot.end_time|time:"g:i A" }}</span>
+            {% if res.return_slot %}
+            <span>Return by: {{ res.return_slot.date|date:"D, M j" }} {{ res.return_slot.start_time|time:"g:i A" }} - {{ res.return_slot.end_time|time:"g:i A" }}</span>
+            {% else %}
+            <span>Return slot: to be announced</span>
+            {% endif %}
           </div>
         </div>
 
-        {% if res.is_fully_checked_out %}
+        {% if res.has_checkout %}
           <div class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
             Checked out
           </div>
-        {% elif res.status == 'confirmed' %}
+        {% elif res.status == 'confirmed' or res.status == 'pending' %}
         <div id="cancel-{{ res.pk }}">
           <form method="post" action="{% url 'core:cancel_reservation' res.pk %}"
                 hx-post="{% url 'core:cancel_reservation' res.pk %}"

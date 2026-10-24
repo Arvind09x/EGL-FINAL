@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Borrowers - Eeshto{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up space-y-8">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-3xl font-bold text-surface-900">Borrowers</h1>
+      <p class="text-surface-500 mt-1">Standing, restrictions, vouching and escalations</p>
+    </div>
+    <a href="{% url 'core:member_desk' %}" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all"><- Back to Desk</a>
+  </div>
+
+  <form method="get" class="glass rounded-2xl p-5 flex flex-col sm:flex-row gap-3">
+    <input type="email" name="email" value="{{ email }}" required placeholder="borrower@ashoka.edu.in"
+           class="flex-1 px-4 py-3 rounded-xl bg-surface-50 border border-surface-300 text-surface-800 placeholder-surface-400 focus:border-red-500 focus:outline-none">
+    <button type="submit" class="px-6 py-3 rounded-xl text-sm font-semibold btn-primary text-white transition-all">Look up</button>
+  </form>
+
+  {% if not_found %}
+  <div class="glass rounded-2xl p-6 text-center text-surface-500">No user found with that email. They need to sign in once first.</div>
+  {% endif %}
+
+  {% if target %}
+  <div class="glass rounded-2xl p-6 space-y-2">
+    <h2 class="text-xl font-semibold text-surface-900">{{ target.email }}</h2>
+    <div class="flex flex-wrap gap-4 text-sm text-surface-500">
+      <span>Type: {{ borrower_type }}</span>
+      <span>Phone: {{ target.phone|default:"not given" }}</span>
+      <span>Game limit: {{ max_games|default:"unlimited" }}</span>
+      <span>Holding: {{ active_checkouts|length }}</span>
+    </div>
+    {% if vouch %}<p class="text-sm text-surface-600">Vouched for by {{ vouch.voucher.email }}</p>{% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Profile flags -->
+    <section class="glass rounded-2xl p-6 space-y-4">
+      <h3 class="text-lg font-semibold text-surface-900">Borrower details</h3>
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ target.email }}">
+        <input type="hidden" name="action" value="flags">
+        <div>
+          <label class="block text-sm text-surface-500 mb-1">Borrower type</label>
+          <select name="policy_type" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800">
+            {% for value, label in policy_choices %}
+              <option value="{{ value }}" {% if profile.policy_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <label class="flex items-start gap-2 text-sm text-surface-600">
+          <input type="checkbox" name="requires_voucher" class="mt-1" {% if profile.requires_voucher %}checked{% endif %}>
+          <span>Graduating this semester and past the midterm break (needs a voucher)</span>
+        </label>
+        <label class="flex items-start gap-2 text-sm text-surface-600">
+          <input type="checkbox" name="tdi_exempt" class="mt-1" {% if profile.tdi_exempt %}checked{% endif %}>
+          <span>Lives in TDI / pre-approved alternative housing</span>
+        </label>
+        <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold btn-primary text-white transition-all">Save</button>
+      </form>
+    </section>
+
+    <!-- Vouching -->
+    <section class="glass rounded-2xl p-6 space-y-4">
+      <h3 class="text-lg font-semibold text-surface-900">Vouching</h3>
+      <p class="text-sm text-surface-500">Record the email from a non-graduating student who agrees to vouch. Games are then treated as borrowed by the voucher.</p>
+      {% if vouch %}
+      <form method="post" class="flex items-center justify-between gap-3">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ target.email }}">
+        <input type="hidden" name="action" value="remove_vouch">
+        <input type="hidden" name="vouch_id" value="{{ vouch.pk }}">
+        <span class="text-sm text-surface-700">{{ vouch.voucher.email }}</span>
+        <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Remove</button>
+      </form>
+      {% endif %}
+      <form method="post" class="flex flex-col sm:flex-row gap-3">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ target.email }}">
+        <input type="hidden" name="action" value="add_vouch">
+        <input type="email" name="voucher_email" required placeholder="voucher@ashoka.edu.in" class="flex-1 px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+        <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold btn-primary text-white transition-all">Add vouch</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Restrictions -->
+  <section class="glass rounded-2xl p-6 space-y-4">
+    <h3 class="text-lg font-semibold text-surface-900">Probation, bans and blacklist</h3>
+    <div class="space-y-2">
+      {% for r in restrictions %}
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm border-b border-surface-100 pb-2">
+        <div>
+          <span class="font-semibold text-surface-900">{{ r.get_restriction_type_display }}</span>
+          <span class="text-surface-500">{{ r.start_date|date:"M j, Y" }} to {{ r.end_date|date:"M j, Y"|default:"permanent" }}</span>
+          {% if r.is_active %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">Active</span>{% endif %}
+          <p class="text-xs text-surface-400">{{ r.reason }}</p>
+        </div>
+        {% if r.is_active %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="email" value="{{ target.email }}">
+          <input type="hidden" name="action" value="lift_restriction">
+          <input type="hidden" name="restriction_id" value="{{ r.pk }}">
+          <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-surface-300 text-surface-600 hover:bg-surface-100 transition-all">Lift</button>
+        </form>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p class="text-sm text-surface-500">No restrictions on record.</p>
+      {% endfor %}
+    </div>
+    <form method="post" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="email" value="{{ target.email }}">
+      <input type="hidden" name="action" value="add_restriction">
+      <select name="restriction_type" class="px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800">
+        {% for value, label in restriction_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+      <input type="text" name="reason" required placeholder="Reason" class="sm:col-span-2 px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+      <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">Apply</button>
+    </form>
+    <p class="text-xs text-surface-400">Probation and bans last 1 semester. Bans and blacklists need a senior admin. Losing or damaging games adds probation automatically.</p>
+  </section>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Premises violation -->
+    <section class="glass rounded-2xl p-6 space-y-4">
+      <h3 class="text-lg font-semibold text-surface-900">Game taken off campus</h3>
+      <form method="post" class="space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ target.email }}">
+        <input type="hidden" name="action" value="premises">
+        <input type="text" name="reason" required placeholder="What happened" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+        <input type="number" name="fine" step="0.01" min="0" placeholder="Fine (INR, optional)" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+        <label class="flex items-center gap-2 text-sm text-surface-600"><input type="checkbox" name="probation"> Also apply probation</label>
+        <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all">Record</button>
+      </form>
+    </section>
+
+    <!-- CADI -->
+    <section class="glass rounded-2xl p-6 space-y-4">
+      <h3 class="text-lg font-semibold text-surface-900">Escalate to CADI</h3>
+      <p class="text-sm text-surface-500">Only for borrowers who are not communicating in any capacity despite multiple attempts to reach them.</p>
+      <form method="post" class="space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ target.email }}">
+        <input type="hidden" name="action" value="cadi">
+        <input type="text" name="reason" required placeholder="Attempts made to reach the borrower" class="w-full px-3 py-2 rounded-lg bg-surface-50 border border-surface-300 text-sm text-surface-800 focus:border-red-500 focus:outline-none">
+        <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">Record escalation</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Dues, checkouts, incidents -->
+  <section class="glass rounded-2xl p-6 space-y-3">
+    <h3 class="text-lg font-semibold text-surface-900">Unpaid dues</h3>
+    {% for charge in dues %}
+      <p class="text-sm text-surface-700">{{ charge.get_charge_type_display }} - ₹{{ charge.amount }} <span class="text-surface-400">({{ charge.created_at|date:"M j" }})</span></p>
+    {% empty %}
+      <p class="text-sm text-surface-500">No unpaid dues.</p>
+    {% endfor %}
+  </section>
+
+  <section class="glass rounded-2xl p-6 space-y-3">
+    <h3 class="text-lg font-semibold text-surface-900">Recent incidents</h3>
+    {% for incident in incidents %}
+      <p class="text-sm text-surface-700">{{ incident.created_at|date:"M j, Y" }} - {{ incident.get_incident_type_display }}
+        <span class="text-surface-400">{{ incident.description|truncatechars:90 }}</span></p>
+    {% empty %}
+      <p class="text-sm text-surface-500">No incidents on record.</p>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

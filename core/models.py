@@ -49,6 +49,7 @@ class BorrowerProfile(models.Model):
         CLUB_SOCIETY = "club_society", "Club / Society"
         RA = "ra", "Resident Advisor"
         EESHTO_MEMBER = "eeshto_member", "ESHTO Member"
+        TA_TF = "ta_tf", "Teaching Assistant / Fellow"
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -59,6 +60,17 @@ class BorrowerProfile(models.Model):
         max_length=20,
         choices=PolicyType.choices,
         default=PolicyType.INDIVIDUAL,
+    )
+    requires_voucher = models.BooleanField(
+        default=False,
+        help_text=(
+            "Graduating this semester and past the midterm break: needs a "
+            "non-graduating student to vouch before borrowing."
+        ),
+    )
+    tdi_exempt = models.BooleanField(
+        default=False,
+        help_text="Lives in TDI / pre-approved alternative housing (may take games off campus).",
     )
 
     def __str__(self):
@@ -77,12 +89,33 @@ class GameTitle(models.Model):
     min_players = models.PositiveSmallIntegerField(default=1)
     max_players = models.PositiveSmallIntegerField(default=4)
     category = models.CharField(max_length=100, blank=True)
+    DEPOSIT_BY_CATEGORY = {
+        "D": 50,
+        "C": 150,
+        "B": 300,
+        "A": 600,
+        "S": 650,
+    }
+
+    deposit_category = models.CharField(
+        max_length=1,
+        blank=True,
+        choices=[(k, k) for k in DEPOSIT_BY_CATEGORY],
+        help_text="Policy category (D/C/B/A/S). Sets the security deposit automatically.",
+    )
     security_deposit = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
         validators=[MinValueValidator(0)],
-        help_text="Security deposit in INR required to borrow this game.",
+        help_text="Security deposit in INR. Set from the deposit category when one is chosen.",
+    )
+    mrp = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="MRP of the game in INR. Used for lost and damage charges.",
     )
 
     class Meta:
@@ -90,6 +123,15 @@ class GameTitle(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.deposit_category:
+            self.security_deposit = self.DEPOSIT_BY_CATEGORY[self.deposit_category]
+        super().save(*args, **kwargs)
+
+    @property
+    def is_s_category(self):
+        return self.deposit_category == "S"
 
     @property
     def available_copies(self):
@@ -134,8 +176,15 @@ class GameCopy(models.Model):
 # M1-5  Weekly Slot
 # =====================================================================
 class WeeklySlot(models.Model):
-    """A specific pickup/return session (usually Tue/Fri 18:30–19:30 IST)."""
+    """A borrowing or returning session, scheduled by any Eeshto member."""
 
+    class SlotType(models.TextChoices):
+        BORROW = "borrow", "Borrow"
+        RETURN = "return", "Return"
+
+    slot_type = models.CharField(
+        max_length=10, choices=SlotType.choices, default=SlotType.BORROW
+    )
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -155,7 +204,10 @@ class WeeklySlot(models.Model):
 
     def __str__(self):
         cancelled = " [CANCELLED]" if self.is_cancelled else ""
-        return f"{self.date} {self.start_time}–{self.end_time}{cancelled}"
+        return (
+            f"{self.get_slot_type_display()} {self.date} "
+            f"{self.start_time}–{self.end_time}{cancelled}"
+        )
 
     @property
     def start_datetime(self):
@@ -165,6 +217,13 @@ class WeeklySlot(models.Model):
         from datetime import datetime
         return datetime.combine(self.date, self.start_time, tzinfo=tz)
 
+    @property
+    def end_datetime(self):
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        from datetime import datetime
+        return datetime.combine(self.date, self.end_time, tzinfo=tz)
+
 
 # =====================================================================
 # M1-6  Reservation
@@ -173,7 +232,9 @@ class Reservation(models.Model):
     """A confirmed booking tying a borrower, copy, and pickup/return slots."""
 
     class Status(models.TextChoices):
+        PENDING = "pending", "Pending approval"
         CONFIRMED = "confirmed", "Confirmed"
+        REJECTED = "rejected", "Rejected"
         CANCELLED = "cancelled", "Cancelled"
         NO_SHOW = "no_show", "No-show"
         COMPLETED = "completed", "Completed"
@@ -193,16 +254,22 @@ class Reservation(models.Model):
         WeeklySlot,
         on_delete=models.PROTECT,
         related_name="return_reservations",
-        help_text="Default = next slot; extended = same weekday next week.",
+        null=True,
+        blank=True,
+        help_text="The next return slot. Empty until a return slot has been scheduled.",
     )
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.CONFIRMED
     )
+    # Details required from clubs/societies, RAs and TAs/TFs (2 days' notice).
+    purpose = models.CharField(max_length=255, blank=True)
+    poc_name = models.CharField(max_length=255, blank=True)
+    poc_phone = models.CharField(max_length=15, blank=True)
+    return_by_date = models.DateField(null=True, blank=True)
+    rh_floor = models.CharField(max_length=100, blank=True)
+    authorizing_email = models.EmailField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-created_at"]
 
     def __str__(self):
         return (
@@ -256,6 +323,18 @@ class Checkout(models.Model):
         blank=True,
         related_name="handled_returns",
     )
+    refund_member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="handled_refunds",
+    )
+    refund_due_by = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Deposit must be refunded by this date (one week after return).",
+    )
     pickup_location = models.CharField(
         max_length=255,
         default="Student Commons, 2nd floor of the mess, near the couches between the meeting rooms",
@@ -281,7 +360,7 @@ class Checkout(models.Model):
     )
     is_lost_candidate = models.BooleanField(
         default=False,
-        help_text="Flagged if overdue ≥ 30 days past due date.",
+        help_text="Flagged once 3 return slots have passed after the due slot.",
     )
 
     checkout_time = models.DateTimeField(default=timezone.now)
@@ -306,10 +385,12 @@ class Charge(models.Model):
         LATE_FEE = "late_fee", "Late Fee"
         DAMAGE_FEE = "damage_fee", "Damage Fee"
         LOST_REPLACEMENT = "lost_replacement", "Lost-Game Replacement"
+        FINE = "fine", "Fine"
 
     class ChargeStatus(models.TextChoices):
         COLLECTED = "collected", "Collected"
         REFUNDED = "refunded", "Refunded"
+        UNPAID = "unpaid", "Unpaid"
         PAID = "paid", "Paid"
         WAIVED = "waived", "Waived"
 
@@ -365,6 +446,15 @@ class Incident(models.Model):
         LOST_GAME = "lost_game", "Lost Game"
         NO_SHOW = "no_show", "No-Show"
         OVERRIDE = "override", "Override"
+        PRE_EXISTING_DAMAGE = "pre_existing_damage", "Pre-existing Damage Report"
+        PREMISES_VIOLATION = "premises_violation", "Left University Premises"
+        CADI_ESCALATION = "cadi_escalation", "CADI Escalation"
+
+    class ComponentCategory(models.TextChoices):
+        CRITICAL = "critical", "Critical"
+        ESSENTIAL = "essential", "Essential"
+        NECESSARY = "necessary", "Necessary"
+        COSMETIC = "cosmetic", "Cosmetic"
 
     incident_type = models.CharField(max_length=20, choices=IncidentType.choices)
     checkout = models.ForeignKey(
@@ -390,6 +480,13 @@ class Incident(models.Model):
         help_text="The borrower involved in the incident.",
     )
     description = models.TextField(blank=True)
+    component_category = models.CharField(
+        max_length=10, choices=ComponentCategory.choices, blank=True
+    )
+    unplayable = models.BooleanField(
+        default=False,
+        help_text="Damage/loss makes the game unplayable beyond restoration.",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -409,9 +506,10 @@ class Incident(models.Model):
 # M1-10  Restriction
 # =====================================================================
 class Restriction(models.Model):
-    """Temporary ban or blacklist preventing a user from making reservations."""
+    """Probation, temporary ban or blacklist. Bans and blacklists block borrowing."""
 
     class RestrictionType(models.TextChoices):
+        PROBATION = "probation", "Probation"
         TEMP_BAN = "temp_ban", "Temporary Ban"
         BLACKLIST = "blacklist", "Blacklist"
 
@@ -481,6 +579,18 @@ class AuditLog(models.Model):
         ("role_changed", "Role Changed"),
         ("slot_cancelled", "Slot Cancelled"),
         ("lost_finalized", "Lost Game Finalized"),
+        ("lost_resolved", "Lost Game Resolved"),
+        ("slot_created", "Slot Created"),
+        ("slot_updated", "Slot Updated"),
+        ("slot_deleted", "Slot Deleted"),
+        ("reservation_approved", "Reservation Approved"),
+        ("reservation_rejected", "Reservation Rejected"),
+        ("vouch_added", "Vouch Added"),
+        ("vouch_removed", "Vouch Removed"),
+        ("borrower_updated", "Borrower Updated"),
+        ("preexisting_damage", "Pre-existing Damage Reported"),
+        ("cadi_escalation", "CADI Escalation"),
+        ("premises_violation", "Premises Violation"),
     ]
 
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)
@@ -534,3 +644,52 @@ class ClubSocietyEmailAllowlist(models.Model):
 
     def __str__(self):
         return f"{self.email} ({self.name})" if self.name else self.email
+
+
+class TAEmailAllowlist(models.Model):
+    """Pre-loaded TA/TF emails that auto-assign policy_type = 'ta_tf'."""
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "TA/TF Email Allowlist Entry"
+        verbose_name_plural = "TA/TF Email Allowlist"
+
+    def __str__(self):
+        return self.email
+
+
+# =====================================================================
+# Vouch (graduating borrowers)
+# =====================================================================
+class Vouch(models.Model):
+    """A non-graduating student vouching for a graduating borrower.
+
+    While active, games borrowed by the graduating student are checked out
+    to (and are the responsibility of) the voucher.
+    """
+
+    borrower = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="vouches_received",
+    )
+    voucher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="vouches_given",
+    )
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="vouches_recorded",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.voucher.email} vouches for {self.borrower.email}"

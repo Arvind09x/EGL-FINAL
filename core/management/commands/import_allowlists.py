@@ -5,7 +5,7 @@ Covers task I8-3.
 CSV format:
     email, name, type
 
-Where type is 'ra' or 'club'.
+Where type is ra, club or ta.
 
 Usage:
     python manage.py import_allowlists allowlists.csv
@@ -15,7 +15,7 @@ import csv
 
 from django.core.management.base import BaseCommand
 
-from core.models import ClubSocietyEmailAllowlist, RAEmailAllowlist
+from core.models import ClubSocietyEmailAllowlist, RAEmailAllowlist, TAEmailAllowlist
 
 
 class Command(BaseCommand):
@@ -28,6 +28,7 @@ class Command(BaseCommand):
         path = options["csv_file"]
         ra_count = 0
         club_count = 0
+        ta_count = 0
 
         with open(path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -42,6 +43,12 @@ class Command(BaseCommand):
                     )
                     if created:
                         ra_count += 1
+                elif entry_type in ("ta", "tf", "ta_tf"):
+                    _, created = TAEmailAllowlist.objects.get_or_create(
+                        email=email, defaults={"name": name}
+                    )
+                    if created:
+                        ta_count += 1
                 elif entry_type == "club":
                     _, created = ClubSocietyEmailAllowlist.objects.get_or_create(
                         email=email, defaults={"name": name}
@@ -55,6 +62,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done: {ra_count} RA entries, {club_count} Club/Society entries created."
+                f"Done: {ra_count} RA, {club_count} Club/Society, {ta_count} TA/TF entries created."
             )
         )

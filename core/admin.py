@@ -18,7 +18,9 @@ from .models import (
     RAEmailAllowlist,
     Reservation,
     Restriction,
+    TAEmailAllowlist,
     User,
+    Vouch,
     WeeklySlot,
 )
 
@@ -73,8 +75,8 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(GameTitle)
 class GameTitleAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "min_players", "max_players", "security_deposit"]
-    list_filter = ["category"]
+    list_display = ["name", "category", "deposit_category", "security_deposit", "mrp", "min_players", "max_players"]
+    list_filter = ["category", "deposit_category"]
     search_fields = ["name", "category"]
     inlines = [GameCopyInline]
 
@@ -91,8 +93,8 @@ class GameCopyAdmin(admin.ModelAdmin):
 
 @admin.register(WeeklySlot)
 class WeeklySlotAdmin(admin.ModelAdmin):
-    list_display = ["date", "start_time", "end_time", "is_cancelled"]
-    list_filter = ["is_cancelled", "date"]
+    list_display = ["date", "slot_type", "start_time", "end_time", "is_cancelled"]
+    list_filter = ["slot_type", "is_cancelled", "date"]
     date_hierarchy = "date"
 
 
@@ -101,7 +103,7 @@ class WeeklySlotAdmin(admin.ModelAdmin):
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "game_copy", "pickup_slot", "return_slot", "status"]
+    list_display = ["id", "user", "game_copy", "pickup_slot", "return_slot", "status", "purpose"]
     list_filter = ["status"]
     search_fields = ["user__email", "game_copy__game_title__name"]
     raw_id_fields = ["user", "game_copy", "pickup_slot", "return_slot"]
@@ -119,7 +121,7 @@ class CheckoutAdmin(admin.ModelAdmin):
     ]
     list_filter = ["deposit_status", "is_lost_candidate"]
     search_fields = ["borrower__email", "game_copy__game_title__name"]
-    raw_id_fields = ["reservation", "borrower", "game_copy", "handoff_member", "due_date_slot"]
+    raw_id_fields = ["reservation", "borrower", "game_copy", "handoff_member", "return_member", "refund_member", "due_date_slot"]
 
 
 # ── Financial ────────────────────────────────────────────────────────
@@ -184,3 +186,17 @@ class RAEmailAllowlistAdmin(admin.ModelAdmin):
 class ClubSocietyEmailAllowlistAdmin(admin.ModelAdmin):
     list_display = ["email", "name"]
     search_fields = ["email", "name"]
+
+
+@admin.register(TAEmailAllowlist)
+class TAEmailAllowlistAdmin(admin.ModelAdmin):
+    list_display = ["email", "name"]
+    search_fields = ["email", "name"]
+
+
+@admin.register(Vouch)
+class VouchAdmin(admin.ModelAdmin):
+    list_display = ["borrower", "voucher", "is_active", "created_at"]
+    list_filter = ["is_active"]
+    search_fields = ["borrower__email", "voucher__email"]
+    raw_id_fields = ["borrower", "voucher", "created_by"]

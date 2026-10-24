@@ -195,6 +195,8 @@
             Desk</a>
           <a href="{% url 'core:slot_list' %}"
             class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Slots</a>
+          <a href="{% url 'core:desk_borrower' %}"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-surface-600 hover:text-surface-900 hover:bg-surface-200/60 transition-all">Borrowers</a>
           {% endif %}
           {% if user.is_senior_admin or user.is_superuser %}
           <a href="{% url 'core:manage_roles' %}"
@@ -242,10 +244,17 @@
   {% if user.is_authenticated %}
   {% for r in user.restrictions.all %}
   {% if r.is_active %}
+  {% if r.restriction_type == 'probation' %}
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center">
+    <span class="text-amber-800 text-sm font-medium">Your account is on probation until {{ r.end_date|date:"M j, Y" }}.
+      Any further infraction while on probation will result in a ban.</span>
+  </div>
+  {% else %}
   <div class="bg-red-50 border-b border-red-200 px-4 py-3 text-center">
     <span class="text-red-700 text-sm font-medium">Your account is restricted: {{ r.reason }} (until {{
       r.end_date|default:"permanently" }})</span>
   </div>
+  {% endif %}
   {% endif %}
   {% endfor %}
   {% endif %}

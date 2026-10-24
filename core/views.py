@@ -3,12 +3,12 @@ Views for the ESHTO Games Library.
 
 Covers: Borrower portal (B3-*), Reservation actions (R4-11, R4-12),
 Member desk (D5-*), Fees & incidents (F6-*), Slot management (S7-*),
-and Role management (A2-6).
+Borrower administration, and Role management (A2-6).
 """
 
 import json
-from datetime import timedelta
-from decimal import Decimal
+from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -20,7 +20,9 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .decorators import borrower_required, member_required, senior_admin_required
+from .forms import SlotForm
 from .models import (
+    BorrowerProfile,
     Charge,
     Checkout,
     GameCopy,
@@ -28,15 +30,25 @@ from .models import (
     Incident,
     Reservation,
     Restriction,
+    Vouch,
     WeeklySlot,
 )
 
 User = get_user_model()
 
-PICKUP_LOCATION = (
-    "Student Commons, 2nd floor of the mess, "
-    "near the couches between the meeting rooms"
-)
+PICKUP_LOCATION = services.PICKUP_LOCATION
+
+
+def _alert(kind, text):
+    """Small HTMX response fragment. Always HTTP 200 so HTMX swaps it in."""
+    return HttpResponse(f'<div class="alert alert-{kind}">{text}</div>')
+
+
+def _parse_decimal(raw):
+    try:
+        return Decimal(raw) if raw not in (None, "") else None
+    except InvalidOperation:
+        return None
 
 
 # =====================================================================
@@ -46,9 +58,7 @@ PICKUP_LOCATION = (
 def home(request):
     """Landing page."""
     game_count = GameTitle.objects.count()
-    next_slot = WeeklySlot.objects.filter(
-        date__gte=timezone.now().date(), is_cancelled=False
-    ).first()
+    next_slot = next(iter(services.upcoming_slots(limit=1)), None)
     return render(request, "core/home.html", {
         "game_count": game_count,
         "next_slot": next_slot,
@@ -80,21 +90,13 @@ def all_games(request):
 # =====================================================================
 
 def available_games(request):
-    today = timezone.now().date()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6)
-
-    upcoming_slots = WeeklySlot.objects.filter(
-        date__gte=today, date__lte=sunday, is_cancelled=False
-    ).order_by("date", "start_time")
-
     games = GameTitle.objects.prefetch_related("copies").filter(
         copies__condition__in=["good", "fair"],
     ).distinct()
 
     return render(request, "core/available_games.html", {
         "games": games,
-        "upcoming_slots": upcoming_slots,
+        "upcoming_slots": services.upcoming_slots(limit=6),
     })
 
 
@@ -104,44 +106,52 @@ def available_games(request):
 
 def game_detail(request, pk):
     game = get_object_or_404(GameTitle.objects.prefetch_related("copies"), pk=pk)
-    
-    today = timezone.now().date()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6)
 
-    upcoming_slots = WeeklySlot.objects.filter(
-        date__gte=today, date__lte=sunday, is_cancelled=False
-    ).order_by("date", "start_time")
+    special_type = ""
+    my_deposit = None
+    tdi_exempt = False
+    if request.user.is_authenticated:
+        ptype = services.get_borrower_type(request.user)
+        if ptype in services.SPECIAL_TYPES:
+            special_type = ptype
+        tdi_exempt = services.get_profile(request.user).tdi_exempt
+        first_copy = game.copies.first()
+        if first_copy:
+            my_deposit = services.required_deposit(request.user, first_copy)
 
-    # Check which slots have open booking windows
+    now = timezone.now()
     slots_with_status = []
-    for slot in upcoming_slots:
-        is_open = services.is_booking_window_open(slot) or (
-            request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
-        )
-        slots_with_status.append({"slot": slot, "is_open": is_open})
+    for slot in services.upcoming_borrow_slots(limit=4):
+        is_open = True
+        closed_reason = ""
+        if special_type and slot.start_datetime - now < services.SPECIAL_NOTICE:
+            is_open = False
+            closed_reason = "needs 2 days notice"
+        slots_with_status.append({
+            "slot": slot, "is_open": is_open, "closed_reason": closed_reason,
+        })
 
-    # Build set of (copy_id, slot_id) pairs that are already reserved
+    # (copy_id, slot_id) pairs that are already reserved
     reserved_pairs = set()
-    for slot in upcoming_slots:
+    for info in slots_with_status:
         reserved_copies = Reservation.objects.filter(
-            pickup_slot=slot,
-            status=Reservation.Status.CONFIRMED,
+            pickup_slot=info["slot"],
+            status__in=[Reservation.Status.CONFIRMED, Reservation.Status.PENDING],
             game_copy__game_title=game,
         ).values_list("game_copy_id", flat=True)
         for copy_id in reserved_copies:
-            reserved_pairs.add((copy_id, slot.pk))
-
-    user_has_phone = (
-        request.user.is_authenticated and bool(request.user.phone)
-    )
+            reserved_pairs.add((copy_id, info["slot"].pk))
 
     return render(request, "core/game_detail.html", {
         "game": game,
         "slots_with_status": slots_with_status,
         "location": PICKUP_LOCATION,
         "reserved_pairs": reserved_pairs,
-        "user_has_phone": user_has_phone,
+        "user_has_phone": request.user.is_authenticated and bool(request.user.phone),
+        "special_type": special_type,
+        "my_deposit": my_deposit,
+        "tdi_exempt": tdi_exempt,
+        "return_slots": services.upcoming_slots(WeeklySlot.SlotType.RETURN, limit=2),
     })
 
 
@@ -151,51 +161,16 @@ def game_detail(request, pk):
 
 @borrower_required
 def my_reservations(request):
-    raw_reservations = Reservation.objects.filter(user=request.user).select_related(
+    reservations = Reservation.objects.filter(user=request.user).select_related(
         "game_copy__game_title", "pickup_slot", "return_slot"
     ).annotate(
-        has_checkout=Exists(Checkout.objects.filter(reservation=OuterRef('pk')))
+        has_checkout=Exists(Checkout.objects.filter(reservation=OuterRef("pk")))
     ).order_by("-created_at")
 
-    reservations = list(raw_reservations)
-
-    # Group reservations by (game_copy_id, iso_year, iso_week)
-    from collections import defaultdict
-    groups = defaultdict(list)
-    for r in reservations:
-        y, w, d = r.pickup_slot.date.isocalendar()
-        groups[(r.game_copy_id, y, w)].append(r)
-        
-    unique_reservations = []
-    seen_groups = set()
-    for r in reservations:
-        y, w, d = r.pickup_slot.date.isocalendar()
-        key = (r.game_copy_id, y, w)
-        group_res = groups[key]
-
-        # Two-slot extension: ONLY when same copy booked for both Tue and Fri
-        if len(group_res) > 1 and {1, 4}.issubset({res.pickup_slot.date.weekday() for res in group_res}):
-            r.is_extended_group = True
-            r.is_fully_checked_out = any(g.has_checkout for g in group_res)
-            # Find the Tue reservation (earliest pickup)
-            tue_res = min(group_res, key=lambda x: x.pickup_slot.date)
-            # Find the return slot from the Tue reservation (should be next Tue)
-            r.display_pickup = tue_res.pickup_slot
-            r.display_return = tue_res.return_slot
-            if key not in seen_groups:
-                seen_groups.add(key)
-                unique_reservations.append(r)
-        else:
-            r.is_extended_group = False
-            r.is_fully_checked_out = r.has_checkout
-            r.display_pickup = r.pickup_slot
-            r.display_return = r.return_slot
-            unique_reservations.append(r)
-            
-    restriction = services.get_active_restriction(request.user)
     return render(request, "core/my_reservations.html", {
-        "reservations": unique_reservations,
-        "restriction": restriction,
+        "reservations": reservations,
+        "restriction": services.get_blocking_restriction(request.user),
+        "probation": services.get_active_probation(request.user),
         "location": PICKUP_LOCATION,
     })
 
@@ -206,28 +181,66 @@ def my_reservations(request):
 
 @borrower_required
 def my_checkouts(request):
-    checkouts = Checkout.objects.filter(borrower=request.user).select_related(
+    checkouts = list(Checkout.objects.filter(borrower=request.user).select_related(
         "game_copy__game_title", "due_date_slot"
-    )
-    charges = Charge.objects.filter(user=request.user)
-    restriction = services.get_active_restriction(request.user)
+    ))
+    now = timezone.now()
 
     # Update late fees on access (F6-2)
-    for co in checkouts.filter(return_time__isnull=True):
-        services.update_late_fee_charge(co)
-        services.check_lost_candidate(co)
+    for co in checkouts:
+        if co.return_time is None:
+            services.update_late_fee_charge(co)
+            services.check_lost_candidate(co)
+            deadline = co.checkout_time + services.INSPECTION_WINDOW
+            co.can_report_damage = now <= deadline
+            co.report_deadline = deadline
+            co.due_slot = services.effective_due_slot(co)
+        else:
+            co.can_report_damage = False
 
+    charges = Charge.objects.filter(user=request.user)
     return render(request, "core/my_checkouts.html", {
         "checkouts": checkouts,
         "charges": charges,
-        "restriction": restriction,
+        "total_due": sum(
+            (c.amount for c in charges if c.status == Charge.ChargeStatus.UNPAID),
+            Decimal("0"),
+        ),
+        "restriction": services.get_blocking_restriction(request.user),
+        "probation": services.get_active_probation(request.user),
         "location": PICKUP_LOCATION,
     })
 
 
+@borrower_required
+@require_POST
+def report_damage(request, checkout_id):
+    """Borrower reports damage they did not cause (within 3 hours of pickup)."""
+    checkout = get_object_or_404(Checkout, pk=checkout_id, borrower=request.user)
+    ok, error = services.report_existing_damage(
+        checkout, request.user, request.POST.get("description", "")
+    )
+    if ok:
+        messages.success(
+            request,
+            "Damage report recorded. You will not be charged for it. "
+            "Please also email eeshto@ashoka.edu.in.",
+        )
+    else:
+        messages.error(request, error)
+    return redirect("core:my_checkouts")
+
+
 # =====================================================================
-# R4-11  Create Reservation (HTMX)
+# R4-11  Create Reservation
 # =====================================================================
+
+def _parse_date(raw):
+    try:
+        return date.fromisoformat(raw) if raw else None
+    except ValueError:
+        return None
+
 
 @borrower_required
 @require_POST
@@ -235,19 +248,31 @@ def create_reservation(request, copy_id, slot_id):
     copy = get_object_or_404(GameCopy, pk=copy_id)
     slot = get_object_or_404(WeeklySlot, pk=slot_id)
 
-    phone = request.POST.get("phone_number")
+    phone = request.POST.get("phone_number", "").strip()
     if phone and not request.user.phone:
-        request.user.phone = phone.strip()
+        request.user.phone = phone
         request.user.save()
 
-    reservation, error = services.create_reservation(request.user, copy, slot)
+    if not request.user.phone:
+        error = "A contact number is required to reserve a game."
+        reservation = None
+    else:
+        details = {
+            "premises_ack": request.POST.get("premises_ack") == "on",
+            "purpose": request.POST.get("purpose", ""),
+            "poc_name": request.POST.get("poc_name", ""),
+            "poc_phone": request.POST.get("poc_phone", ""),
+            "return_by": _parse_date(request.POST.get("return_by", "")),
+            "rh_floor": request.POST.get("rh_floor", ""),
+            "authorizing_email": request.POST.get("authorizing_email", ""),
+        }
+        reservation, error = services.create_reservation(
+            request.user, copy, slot, details
+        )
 
     if request.htmx:
         if error:
-            return HttpResponse(
-                f'<div class="alert alert-error">{error}</div>',
-                status=422,
-            )
+            return HttpResponse(f'<div class="alert alert-error">{error}</div>', status=422)
         return HttpResponse(
             '<div class="alert alert-success">Reservation confirmed! '
             'Check <a href="/my/reservations/">My Reservations</a>.</div>'
@@ -257,7 +282,12 @@ def create_reservation(request, copy_id, slot_id):
         messages.error(request, error)
         return redirect("core:game_detail", pk=copy.game_title.pk)
 
-    messages.success(request, "Reservation confirmed!")
+    if reservation.status == Reservation.Status.PENDING:
+        messages.success(
+            request, "Request submitted. An Eeshto member will confirm it before the slot."
+        )
+    else:
+        messages.success(request, "Reservation confirmed!")
     return redirect("core:my_reservations")
 
 
@@ -273,13 +303,8 @@ def cancel_reservation(request, pk):
 
     if request.htmx:
         if error:
-            return HttpResponse(
-                f'<div class="alert alert-error">{error}</div>',
-                status=422,
-            )
-        return HttpResponse(
-            '<div class="alert alert-success">Reservation cancelled.</div>'
-        )
+            return HttpResponse(f'<div class="alert alert-error">{error}</div>', status=422)
+        return HttpResponse('<div class="alert alert-success">Reservation cancelled.</div>')
 
     if error:
         messages.error(request, error)
@@ -294,31 +319,61 @@ def cancel_reservation(request, pk):
 
 @member_required
 def member_desk(request):
-    today = timezone.now().date()
+    today = services.today_ist()
     todays_slots = WeeklySlot.objects.filter(date=today, is_cancelled=False)
 
-    reservations = Reservation.objects.filter(
-        pickup_slot__in=todays_slots,
+    reservations = list(Reservation.objects.filter(
+        pickup_slot__in=todays_slots.filter(slot_type=WeeklySlot.SlotType.BORROW),
         status=Reservation.Status.CONFIRMED,
-    ).select_related(
-        "user", "game_copy__game_title", "pickup_slot", "return_slot"
-    ).annotate(
-        has_checkout=Exists(Checkout.objects.filter(reservation=OuterRef('pk')))
-    ).filter(has_checkout=False)
+        checkout__isnull=True,
+    ).select_related("user", "game_copy__game_title", "pickup_slot", "return_slot"))
+    for res in reservations:
+        res.on_probation = services.get_active_probation(res.user) is not None
+        res.blockers = services.checkout_blockers(res)
 
-    active_checkouts = Checkout.objects.filter(
+    pending_requests = Reservation.objects.filter(
+        status=Reservation.Status.PENDING, pickup_slot__date__gte=today,
+    ).select_related("user", "game_copy__game_title", "pickup_slot", "return_slot")
+
+    active_checkouts = list(Checkout.objects.filter(
         return_time__isnull=True
-    ).select_related("borrower", "game_copy__game_title", "due_date_slot")
-
-    # Update late fees and lost candidates
+    ).select_related("borrower", "game_copy__game_title", "due_date_slot"))
     for co in active_checkouts:
         services.update_late_fee_charge(co)
         services.check_lost_candidate(co)
+        co.due_slot = services.effective_due_slot(co)
+        co.on_probation = services.get_active_probation(co.borrower) is not None
+        co.lost_charged = Charge.objects.filter(
+            checkout=co, charge_type=Charge.ChargeType.LOST_REPLACEMENT,
+            status=Charge.ChargeStatus.UNPAID,
+        ).exists()
+        co.late_fee_total = sum(
+            (c.amount for c in Charge.objects.filter(
+                checkout=co, charge_type=Charge.ChargeType.LATE_FEE
+            ).exclude(status=Charge.ChargeStatus.WAIVED)),
+            Decimal("0"),
+        )
+
+    pending_refunds = Charge.objects.filter(
+        charge_type=Charge.ChargeType.DEPOSIT,
+        status=Charge.ChargeStatus.COLLECTED,
+        checkout__return_time__isnull=False,
+    ).select_related("user", "checkout__game_copy__game_title")
+    for refund in pending_refunds:
+        due = refund.checkout.refund_due_by
+        refund.overdue = bool(due and due < today)
+
+    open_dues = Charge.objects.filter(
+        status=Charge.ChargeStatus.UNPAID
+    ).select_related("user", "checkout__game_copy__game_title")
 
     return render(request, "core/desk/desk.html", {
         "todays_slots": todays_slots,
         "reservations": reservations,
+        "pending_requests": pending_requests,
         "active_checkouts": active_checkouts,
+        "pending_refunds": pending_refunds,
+        "open_dues": open_dues,
         "location": PICKUP_LOCATION,
     })
 
@@ -332,14 +387,22 @@ def member_desk(request):
 def desk_checkout(request, reservation_id):
     reservation = get_object_or_404(Reservation, pk=reservation_id)
     condition_notes = request.POST.get("condition_notes", "")
+    override_reason = request.POST.get("override_reason", "")
 
-    checkout = services.perform_checkout(reservation, request.user, condition_notes)
+    checkout, errors = services.perform_checkout(
+        reservation, request.user, condition_notes, override_reason
+    )
+    if errors:
+        text = " ".join(errors) + " Enter an override reason to proceed anyway."
+        if request.htmx:
+            return _alert("error", text)
+        messages.error(request, text)
+        return redirect("core:member_desk")
 
+    who = checkout.borrower.email
     if request.htmx:
-        return HttpResponse(
-            f'<div class="alert alert-success">Checked out to {reservation.user.email}.</div>'
-        )
-    messages.success(request, f"Checked out to {reservation.user.email}.")
+        return _alert("success", f"Checked out to {who}.")
+    messages.success(request, f"Checked out to {who}.")
     return redirect("core:member_desk")
 
 
@@ -352,28 +415,17 @@ def desk_checkout(request, reservation_id):
 def desk_return(request, checkout_id):
     checkout = get_object_or_404(Checkout, pk=checkout_id)
     condition_notes = request.POST.get("condition_notes", "")
+    refund = request.POST.get("refund") == "on"
 
-    # Calculate final late fee before setting return_time
-    late_fee_charge = services.update_late_fee_charge(checkout)
+    services.perform_return(checkout, request.user, condition_notes, refund=refund)
 
-    services.perform_return(checkout, request.user, condition_notes)
-
-    # Refund deposit & Settle Late Fees
-    deposit_charges = Charge.objects.filter(
-        checkout=checkout,
-        charge_type=Charge.ChargeType.DEPOSIT,
-        status=Charge.ChargeStatus.COLLECTED,
+    text = (
+        "Game returned and deposit refunded." if refund
+        else "Game returned. Deposit to be refunded within one week."
     )
-    for deposit in deposit_charges:
-        # Mark deposit as refunded
-        deposit.status = Charge.ChargeStatus.REFUNDED
-        deposit.save()
-
     if request.htmx:
-        return HttpResponse(
-            '<div class="alert alert-success">Game returned and deposit refunded.</div>'
-        )
-    messages.success(request, "Game returned and deposit refunded.")
+        return _alert("success", text)
+    messages.success(request, text)
     return redirect("core:member_desk")
 
 
@@ -388,10 +440,31 @@ def desk_no_show(request, reservation_id):
     services.perform_no_show(reservation, request.user)
 
     if request.htmx:
-        return HttpResponse(
-            '<div class="alert alert-warning">Marked as no-show. Copy is now available for walk-in.</div>'
-        )
+        return _alert("warning", "Marked as no-show. Copy is now available for walk-in.")
     messages.warning(request, "Marked as no-show.")
+    return redirect("core:member_desk")
+
+
+# =====================================================================
+# Pending special-borrower requests (clubs, RAs, TAs/TFs)
+# =====================================================================
+
+@member_required
+@require_POST
+def desk_request_decision(request, reservation_id, decision):
+    reservation = get_object_or_404(Reservation, pk=reservation_id)
+    if decision == "approve":
+        ok, error = services.approve_reservation(reservation, request.user)
+        done = "Request approved."
+    else:
+        ok, error = services.reject_reservation(
+            reservation, request.user, request.POST.get("reason", "")
+        )
+        done = "Request rejected."
+
+    if request.htmx:
+        return _alert("success" if ok else "error", done if ok else error)
+    (messages.success if ok else messages.error)(request, done if ok else error)
     return redirect("core:member_desk")
 
 
@@ -405,6 +478,7 @@ def desk_walk_in(request):
         borrower_email = request.POST.get("borrower_email", "")
         phone_number = request.POST.get("phone_number", "").strip()
         copy_id = request.POST.get("copy_id", "")
+        override_reason = request.POST.get("override_reason", "")
 
         try:
             borrower = User.objects.get(email=borrower_email)
@@ -416,22 +490,22 @@ def desk_walk_in(request):
             borrower.phone = phone_number
             borrower.save()
 
-        # Check if phone number is present now
         if not borrower.phone:
-             messages.error(request, "A contact number is mandatory to perform a walk-in checkout.")
-             return redirect("core:desk_walk_in")
+            messages.error(request, "A contact number is mandatory to perform a walk-in checkout.")
+            return redirect("core:desk_walk_in")
 
         copy = get_object_or_404(GameCopy, pk=copy_id)
 
-        # Find next slot for due date
-        due_slot = WeeklySlot.objects.filter(
-            date__gte=timezone.now().date(), is_cancelled=False
-        ).order_by("date", "start_time").first()
-
-        checkout = services.perform_walk_in_checkout(
-            borrower, copy, request.user, "", due_slot
+        checkout, errors = services.perform_walk_in_checkout(
+            borrower, copy, request.user, "", override_reason
         )
-        messages.success(request, f"Walk-in checkout created for {borrower.email}.")
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            messages.info(request, "Enter an override reason to proceed anyway.")
+            return redirect("core:desk_walk_in")
+
+        messages.success(request, f"Walk-in checkout created for {checkout.borrower.email}.")
         return redirect("core:member_desk")
 
     available_copies = GameCopy.objects.filter(
@@ -489,16 +563,19 @@ def desk_override(request):
 def desk_deposit(request, charge_id, action):
     charge = get_object_or_404(Charge, pk=charge_id, charge_type=Charge.ChargeType.DEPOSIT)
 
-    if action == "collect":
+    if action == "refund" and charge.checkout:
+        services.refund_deposit(charge.checkout, request.user)
+        charge.refresh_from_db()
+    elif action == "collect":
         charge.status = Charge.ChargeStatus.COLLECTED
+        charge.save()
         services._log("deposit_collected", request.user, target_user=charge.user)
-    elif action == "refund":
-        charge.status = Charge.ChargeStatus.REFUNDED
-        services._log("deposit_refunded", request.user, target_user=charge.user)
     elif action == "waive":
         charge.status = Charge.ChargeStatus.WAIVED
-
-    charge.save()
+        charge.save()
+        services._log("charge_updated", request.user, target_user=charge.user, details={
+            "charge_id": charge.pk, "new_status": "waived",
+        })
 
     if request.htmx:
         return HttpResponse(
@@ -514,21 +591,46 @@ def desk_deposit(request, charge_id, action):
 @member_required
 def log_incident(request, checkout_id):
     checkout = get_object_or_404(Checkout, pk=checkout_id)
+    mrp = checkout.game_copy.game_title.mrp
 
     if request.method == "POST":
         description = request.POST.get("description", "")
-        damage_fee = request.POST.get("damage_fee", "")
-        fee = Decimal(damage_fee) if damage_fee else None
+        fee = _parse_decimal(request.POST.get("damage_fee", ""))
+        category = request.POST.get("component_category", "")
+        if category not in dict(Incident.ComponentCategory.choices):
+            category = ""
+        incident_type = request.POST.get("incident_type", Incident.IncidentType.DAMAGE)
+        if incident_type not in (
+            Incident.IncidentType.DAMAGE, Incident.IncidentType.MISSING_COMPONENTS
+        ):
+            incident_type = Incident.IncidentType.DAMAGE
 
-        incident, warning = services.log_damage_incident(
-            checkout, request.user, description, fee
+        incident, warnings, outcome = services.log_damage_incident(
+            checkout, request.user, description, fee,
+            component_category=category,
+            unplayable=request.POST.get("unplayable") == "on",
+            incident_type=incident_type,
         )
-        if warning:
+        for warning in warnings:
             messages.warning(request, warning)
+        if outcome:
+            messages.warning(request, outcome)
         messages.success(request, "Incident logged.")
         return redirect("core:member_desk")
 
-    return render(request, "core/desk/log_incident.html", {"checkout": checkout})
+    guide = {}
+    for key, _ in Incident.ComponentCategory.choices:
+        rng = services.suggested_fee_range(key, mrp)
+        if rng:
+            guide[key] = [str(rng[0]), str(rng[1])]
+    return render(request, "core/desk/log_incident.html", {
+        "checkout": checkout,
+        "component_choices": Incident.ComponentCategory.choices,
+        "fee_guide": json.dumps(guide),
+        "pre_existing": checkout.incidents.filter(
+            incident_type=Incident.IncidentType.PRE_EXISTING_DAMAGE
+        ),
+    })
 
 
 # =====================================================================
@@ -539,13 +641,36 @@ def log_incident(request, checkout_id):
 @require_POST
 def finalize_lost(request, checkout_id):
     checkout = get_object_or_404(Checkout, pk=checkout_id)
-    services.finalize_lost_game(checkout, request.user)
+    ok, info = services.finalize_lost_game(
+        checkout, request.user, _parse_decimal(request.POST.get("replacement_amount", ""))
+    )
+    if not ok:
+        if request.htmx:
+            return _alert("error", info)
+        messages.error(request, info)
+        return redirect("core:member_desk")
 
+    text = "Game finalized as lost. Replacement charge created."
     if request.htmx:
-        return HttpResponse(
-            '<div class="alert alert-error">Game finalized as lost. Charges created.</div>'
-        )
-    messages.warning(request, "Game finalized as lost. Charges created.")
+        return _alert("error", text)
+    messages.warning(request, text)
+    if info:
+        messages.warning(request, info)
+    return redirect("core:member_desk")
+
+
+@member_required
+@require_POST
+def resolve_lost(request, checkout_id):
+    checkout = get_object_or_404(Checkout, pk=checkout_id)
+    ok, error = services.resolve_lost(
+        checkout, request.user, request.POST.get("method", "")
+    )
+    if request.htmx:
+        return _alert("success" if ok else "error", "Lost game resolved." if ok else error)
+    (messages.success if ok else messages.error)(
+        request, "Lost game resolved." if ok else error
+    )
     return redirect("core:member_desk")
 
 
@@ -558,7 +683,17 @@ def finalize_lost(request, checkout_id):
 def update_charge_status(request, charge_id):
     charge = get_object_or_404(Charge, pk=charge_id)
     new_status = request.POST.get("status", "")
-    if new_status in dict(Charge.ChargeStatus.choices):
+
+    if (
+        charge.charge_type == Charge.ChargeType.LOST_REPLACEMENT
+        and charge.status == Charge.ChargeStatus.UNPAID
+        and new_status in ("paid", "waived")
+        and charge.checkout
+        and charge.checkout.return_time is None
+    ):
+        services.resolve_lost(charge.checkout, request.user, new_status)
+        charge.refresh_from_db()
+    elif new_status in dict(Charge.ChargeStatus.choices):
         charge.status = new_status
         charge.save()
         services._log("charge_updated", request.user, target_user=charge.user, details={
@@ -567,42 +702,217 @@ def update_charge_status(request, charge_id):
         })
 
     if request.htmx:
-        return HttpResponse(
-            f'<span class="badge">{charge.get_status_display()}</span>'
-        )
+        return HttpResponse(f'<span class="badge">{charge.get_status_display()}</span>')
     return redirect("core:member_desk")
 
 
 # =====================================================================
-# S7-2  Slot management
+# S7-2  Slot management (any Eeshto member)
 # =====================================================================
 
 @member_required
 def slot_list(request):
     slots = WeeklySlot.objects.filter(
-        date__gte=timezone.now().date()
+        date__gte=services.today_ist()
     ).order_by("date", "start_time")
+    for slot in slots:
+        slot.in_use = services.slot_in_use(slot)
     return render(request, "core/slots/slot_list.html", {"slots": slots})
+
+
+@member_required
+def slot_create(request):
+    form = SlotForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        repeat = form.cleaned_data.get("repeat_weeks") or 0
+        base = form.save(commit=False)
+        created = 0
+        skipped = 0
+        for week in range(repeat + 1):
+            day = base.date + timedelta(days=7 * week)
+            if WeeklySlot.objects.filter(date=day, start_time=base.start_time).exists():
+                skipped += 1
+                continue
+            slot = WeeklySlot.objects.create(
+                slot_type=base.slot_type,
+                date=day,
+                start_time=base.start_time,
+                end_time=base.end_time,
+                notes=base.notes,
+                created_by=request.user,
+            )
+            services._log("slot_created", request.user, details={
+                "slot_id": slot.pk, "date": str(slot.date), "type": slot.slot_type,
+            })
+            created += 1
+        messages.success(request, f"{created} slot(s) created." + (
+            f" {skipped} skipped (a slot already exists at that date and time)." if skipped else ""
+        ))
+        return redirect("core:slot_list")
+    return render(request, "core/slots/slot_form.html", {"form": form, "editing": False})
+
+
+@member_required
+def slot_edit(request, pk):
+    slot = get_object_or_404(WeeklySlot, pk=pk)
+    form = SlotForm(request.POST or None, instance=slot)
+    del form.fields["repeat_weeks"]
+    in_use = services.slot_in_use(slot)
+    if in_use:
+        form.fields["slot_type"].disabled = True
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        services._log("slot_updated", request.user, details={
+            "slot_id": slot.pk, "date": str(slot.date), "type": slot.slot_type,
+        })
+        messages.success(request, "Slot updated.")
+        return redirect("core:slot_list")
+    return render(request, "core/slots/slot_form.html", {
+        "form": form, "editing": True, "slot": slot, "in_use": in_use,
+    })
 
 
 @member_required
 @require_POST
 def cancel_slot(request, pk):
     slot = get_object_or_404(WeeklySlot, pk=pk)
-    slot.is_cancelled = True
-    slot.save()
-
-    services._log("slot_cancelled", request.user, details={
-        "slot_id": slot.pk,
-        "date": str(slot.date),
-    })
-
-    if request.htmx:
-        return HttpResponse(
-            '<span class="badge badge-cancelled">Cancelled</span>'
-        )
-    messages.success(request, f"Slot on {slot.date} cancelled.")
+    cancelled = services.cancel_slot(slot, request.user)
+    text = f"Slot on {slot.date} cancelled."
+    if cancelled:
+        text += f" {cancelled} reservation(s) were cancelled."
+    messages.success(request, text)
     return redirect("core:slot_list")
+
+
+@member_required
+@require_POST
+def restore_slot(request, pk):
+    slot = get_object_or_404(WeeklySlot, pk=pk)
+    slot.is_cancelled = False
+    slot.save()
+    services._log("slot_updated", request.user, details={
+        "slot_id": slot.pk, "date": str(slot.date), "restored": True,
+    })
+    messages.success(request, f"Slot on {slot.date} restored.")
+    return redirect("core:slot_list")
+
+
+@member_required
+@require_POST
+def delete_slot(request, pk):
+    slot = get_object_or_404(WeeklySlot, pk=pk)
+    ok, error = services.delete_slot(slot, request.user)
+    if ok:
+        messages.success(request, "Slot deleted.")
+    else:
+        messages.error(request, error)
+    return redirect("core:slot_list")
+
+
+# =====================================================================
+# Borrower administration (members)
+# =====================================================================
+
+@member_required
+def desk_borrower(request):
+    """Look up a borrower, review their standing, and apply policy actions."""
+    email = (request.GET.get("email") or request.POST.get("email") or "").strip()
+    target = User.objects.filter(email__iexact=email).first() if email else None
+
+    if request.method == "POST":
+        if not target:
+            messages.error(request, f"No user found with email {email}.")
+            return redirect("core:desk_borrower")
+        action = request.POST.get("action", "")
+        actor = request.user
+        reason = request.POST.get("reason", "").strip()
+
+        if action == "flags":
+            services.update_borrower_flags(
+                target, actor,
+                requires_voucher=request.POST.get("requires_voucher") == "on",
+                tdi_exempt=request.POST.get("tdi_exempt") == "on",
+                policy_type=request.POST.get("policy_type", ""),
+            )
+            messages.success(request, "Borrower details updated.")
+        elif action == "add_vouch":
+            voucher = User.objects.filter(
+                email__iexact=request.POST.get("voucher_email", "").strip()
+            ).first()
+            if not voucher:
+                messages.error(request, "No user found for the vouching student's email.")
+            else:
+                _, error = services.add_vouch(target, voucher, actor)
+                (messages.error if error else messages.success)(
+                    request, error or f"{voucher.email} now vouches for {target.email}."
+                )
+        elif action == "remove_vouch":
+            vouch = Vouch.objects.filter(pk=request.POST.get("vouch_id"), borrower=target).first()
+            if vouch:
+                services.remove_vouch(vouch, actor)
+                messages.success(request, "Vouch removed.")
+        elif action == "add_restriction":
+            rtype = request.POST.get("restriction_type", "")
+            if rtype not in dict(Restriction.RestrictionType.choices) or not reason:
+                messages.error(request, "Choose a type and give a reason.")
+            elif rtype != Restriction.RestrictionType.PROBATION and not (
+                actor.is_senior_admin or actor.is_superuser
+            ):
+                messages.error(request, "Only a senior admin can apply a ban or blacklist.")
+            else:
+                services.add_manual_restriction(target, actor, rtype, reason)
+                messages.success(request, "Restriction applied.")
+        elif action == "lift_restriction":
+            restriction = Restriction.objects.filter(
+                pk=request.POST.get("restriction_id"), user=target
+            ).first()
+            if restriction and restriction.restriction_type != Restriction.RestrictionType.PROBATION \
+                    and not (actor.is_senior_admin or actor.is_superuser):
+                messages.error(request, "Only a senior admin can lift a ban or blacklist.")
+            elif restriction:
+                services.lift_restriction(restriction, actor)
+                messages.success(request, "Restriction lifted.")
+        elif action == "cadi":
+            if not reason:
+                messages.error(request, "A reason is required to escalate to CADI.")
+            else:
+                services.record_cadi_escalation(target, actor, reason)
+                messages.warning(request, "Escalation to CADI recorded.")
+        elif action == "premises":
+            if not reason:
+                messages.error(request, "Describe what happened.")
+            else:
+                outcome = services.record_premises_violation(
+                    target, actor, reason,
+                    fine=_parse_decimal(request.POST.get("fine", "")),
+                    probation=request.POST.get("probation") == "on",
+                )
+                messages.warning(request, "Premises violation recorded.")
+                if outcome:
+                    messages.warning(request, outcome)
+        return redirect(f"{request.path}?email={target.email}")
+
+    context = {"email": email, "target": target}
+    if email and not target:
+        context["not_found"] = True
+    if target:
+        profile = services.get_profile(target)
+        context.update({
+            "profile": profile,
+            "borrower_type": services.get_borrower_type(target),
+            "policy_choices": BorrowerProfile.PolicyType.choices,
+            "restrictions": Restriction.objects.filter(user=target),
+            "vouch": services.get_active_vouch(target),
+            "dues": services.unpaid_dues(target),
+            "active_checkouts": Checkout.objects.filter(
+                borrower=target, return_time__isnull=True
+            ).select_related("game_copy__game_title"),
+            "incidents": Incident.objects.filter(user=target)[:15],
+            "restriction_choices": Restriction.RestrictionType.choices,
+            "max_games": services.get_max_active_limit(target),
+        })
+    return render(request, "core/desk/borrower.html", context)
 
 
 # =====================================================================
@@ -621,7 +931,7 @@ def _email_to_name(email):
 @member_required
 def admin_logs(request):
     checkouts = Checkout.objects.select_related(
-        "borrower", "game_copy__game_title", "handoff_member", "return_member"
+        "borrower", "game_copy__game_title", "handoff_member", "return_member", "refund_member"
     ).prefetch_related("charges").order_by("-checkout_time")
 
     transactions = []
@@ -649,12 +959,14 @@ def admin_logs(request):
             balances[uid]['net'] += deposit_amount
             
         is_refunded = deposit_charge and deposit_charge.status == Charge.ChargeStatus.REFUNDED
-        amount_refunded = max(Decimal('0'), deposit_amount - late_fee_amount - damage_fee_amount) if is_refunded else Decimal('0')
+        # Policy: the full security deposit is refunded; fees are charged separately.
+        amount_refunded = deposit_amount if is_refunded else Decimal('0')
+        refunder = co.refund_member or co.return_member
         
-        if is_refunded and co.return_member:
-            rid = co.return_member.pk
+        if is_refunded and refunder:
+            rid = refunder.pk
             if rid not in balances:
-                balances[rid] = {'user': co.return_member, 'collected': Decimal('0'), 'refunded': Decimal('0'), 'net': Decimal('0')}
+                balances[rid] = {'user': refunder, 'collected': Decimal('0'), 'refunded': Decimal('0'), 'net': Decimal('0')}
             balances[rid]['refunded'] += amount_refunded
             balances[rid]['net'] -= amount_refunded
             
