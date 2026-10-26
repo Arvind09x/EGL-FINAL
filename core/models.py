@@ -110,6 +110,13 @@ class GameTitle(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Security deposit in INR. Set from the deposit category when one is chosen.",
     )
+    club_deposit = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Deposit for clubs/groups in INR. Leave 0 to use 25% of MRP (max 1000).",
+    )
     mrp = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -161,6 +168,11 @@ class GameCopy(models.Model):
         max_length=10, choices=Condition.choices, default=Condition.GOOD
     )
     notes = models.TextField(blank=True, help_text="Public condition notes.")
+    location = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Where the copy is kept (members only), e.g. EGL Cupboard.",
+    )
     is_available = models.BooleanField(default=True)
 
     class Meta:

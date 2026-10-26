@@ -1,10 +1,13 @@
 """Tests for policy rules, services and the slot/desk views."""
 
 import zoneinfo
+import os
+import tempfile
 from datetime import time, timedelta
 from decimal import Decimal
 from unittest import mock
 
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -746,3 +749,51 @@ class ViewTests(TestCase):
         self.assertTrue(Incident.objects.filter(
             user=self.user, incident_type=Incident.IncidentType.CADI_ESCALATION
         ).exists())
+
+
+class ClubDepositAndImportTests(TestCase):
+    def test_per_game_club_deposit_overrides_formula(self):
+        club = make_user("club")
+        set_type(club, BorrowerProfile.PolicyType.CLUB_SOCIETY)
+        copy = make_game("Risk", "A", mrp=0)[0]
+        GameTitle.objects.filter(pk=copy.game_title.pk).update(club_deposit=860)
+        copy.refresh_from_db()
+        self.assertEqual(services.required_deposit(club, copy), Decimal("860.00"))
+        # Students still pay the category deposit.
+        self.assertEqual(services.required_deposit(make_user("stu"), copy), Decimal("600.00"))
+
+    def test_import_creates_and_updates(self):
+        csv_text = (
+            "name,copy_label,location,status,deposit_category,club_deposit,mrp,genre,"
+            "min_players,max_players,description,notes\n"
+            "Catan,001,DEAD,damaged,A,825,,Strategy,3,4,Trade,\n"
+            "Catan,002,EGL Cupboard,available,A,825,,,,,,\n"
+            "Shasn,001,Varenya's Room,lost,S,1000,,Strategy,3,5,Politics,\n"
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write(csv_text)
+            path = f.name
+        self.addCleanup(os.unlink, path)
+
+        call_command("import_games", path)
+        catan = GameTitle.objects.get(name="Catan")
+        self.assertEqual(catan.security_deposit, 600)
+        self.assertEqual(catan.club_deposit, 825)
+        self.assertEqual(catan.copies.count(), 2)
+        dead = catan.copies.get(copy_label="001")
+        self.assertEqual(dead.condition, GameCopy.Condition.DAMAGED)
+        self.assertFalse(dead.is_available)
+        ok = catan.copies.get(copy_label="002")
+        self.assertTrue(ok.is_available)
+        self.assertEqual(ok.location, "EGL Cupboard")
+        self.assertEqual(GameTitle.objects.get(name="Shasn").security_deposit, 650)
+
+        # Re-running updates in place and keeps copies on loan unavailable.
+        member = make_user("mem", is_member=True)
+        Checkout.objects.create(
+            borrower=make_user("stu"), game_copy=ok, handoff_member=member
+        )
+        call_command("import_games", path)
+        self.assertEqual(GameCopy.objects.filter(game_title=catan).count(), 2)
+        ok.refresh_from_db()
+        self.assertFalse(ok.is_available)

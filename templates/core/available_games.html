@@ -19,7 +19,7 @@
     <h3 class="text-sm font-semibold text-surface-500 uppercase tracking-wider mb-3">Upcoming Slots</h3>
     <div class="flex flex-wrap gap-2">
       {% for slot in upcoming_slots %}
-        <span class="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
+        <span class="text-red-600 text-sm font-semibold">
           {{ slot.get_slot_type_display }} · {{ slot.date|date:"D, M j" }} · {{ slot.start_time|time:"g:i A" }}
         </span>
       {% endfor %}
@@ -45,7 +45,7 @@
         <div class="flex items-center gap-3 text-xs text-surface-500">
           <span>{{ game.min_players }}-{{ game.max_players }} Players</span>
           {% if game.category %}
-            <span class="px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">{{ game.category }}</span>
+            <span class="text-surface-600">{{ game.category }}</span>
           {% endif %}
         </div>
         <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 mt-2">

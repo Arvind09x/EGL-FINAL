@@ -6,7 +6,7 @@
   <!-- Hero -->
   <section class="text-center py-20 space-y-8">
     <div
-      class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
+      class="inline-flex items-center gap-2 text-red-600 text-sm font-semibold">
       {% if next_slot %}Next {{ next_slot.get_slot_type_display|lower }} slot: {{ next_slot.date|date:"D, M j" }}, {{ next_slot.start_time|time:"g:i A" }}{% else %}Check back for
       upcoming sessions{% endif %}
     </div>

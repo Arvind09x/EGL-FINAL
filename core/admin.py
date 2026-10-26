@@ -75,7 +75,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(GameTitle)
 class GameTitleAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "deposit_category", "security_deposit", "mrp", "min_players", "max_players"]
+    list_display = ["name", "category", "deposit_category", "security_deposit", "club_deposit", "mrp", "min_players", "max_players"]
     list_filter = ["category", "deposit_category"]
     search_fields = ["name", "category"]
     inlines = [GameCopyInline]
@@ -83,8 +83,8 @@ class GameTitleAdmin(admin.ModelAdmin):
 
 @admin.register(GameCopy)
 class GameCopyAdmin(admin.ModelAdmin):
-    list_display = ["game_title", "copy_label", "condition", "is_available"]
-    list_filter = ["condition", "is_available"]
+    list_display = ["game_title", "copy_label", "location", "condition", "is_available"]
+    list_filter = ["condition", "is_available", "location"]
     search_fields = ["copy_label", "game_title__name"]
 
 

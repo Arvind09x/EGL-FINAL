@@ -21,7 +21,7 @@
   <div class="glass rounded-xl p-4 flex items-center gap-3">
     <div class="flex flex-wrap gap-2">
       {% for slot in todays_slots %}
-        <span class="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
+        <span class="text-red-600 text-sm font-semibold">
           {{ slot.get_slot_type_display }}: {{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}
         </span>
       {% endfor %}
@@ -82,9 +82,9 @@
           <div class="space-y-1">
             <div class="flex items-center gap-3">
               <span class="text-surface-900 font-semibold">{{ res.user.email }}</span>
-              <span class="text-surface-500 text-sm">-> {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]</span>
+              <span class="text-surface-500 text-sm">-> {{ res.game_copy.game_title.name }} [{{ res.game_copy.copy_label }}]{% if res.game_copy.location %} - at {{ res.game_copy.location }}{% endif %}</span>
               {% if res.on_probation %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">PROBATION</span>
+                <span class="text-xs font-bold text-amber-700">PROBATION</span>
               {% endif %}
             </div>
             <p class="text-xs text-surface-400">Slot: {{ res.pickup_slot.start_time|time:"g:i A" }} | Return by: {% if res.return_slot %}{{ res.return_slot.date|date:"M j" }}{% else %}to be announced{% endif %}</p>
@@ -132,12 +132,12 @@
               <span class="text-surface-900 font-semibold">{{ co.borrower.email }}</span>
               <span class="text-surface-500 text-sm">-> {{ co.game_copy.game_title.name }} [{{ co.game_copy.copy_label }}]</span>
               {% if co.on_probation %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">PROBATION</span>
+                <span class="text-xs font-bold text-amber-700">PROBATION</span>
               {% endif %}
               {% if co.lost_charged %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">LOST</span>
+                <span class="text-xs font-bold text-red-600">LOST</span>
               {% elif co.is_lost_candidate %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">LOST CANDIDATE</span>
+                <span class="text-xs font-bold text-red-600">LOST CANDIDATE</span>
               {% endif %}
             </div>
             <p class="text-xs text-surface-400">

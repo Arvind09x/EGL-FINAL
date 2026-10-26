@@ -31,12 +31,12 @@
         <div class="space-y-2">
           <div class="flex items-center gap-3">
             <h3 class="text-lg font-semibold text-surface-900">{{ res.game_copy.game_title.name }}</h3>
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
-              {% if res.status == 'confirmed' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-              {% elif res.status == 'cancelled' or res.status == 'rejected' %}bg-surface-100 text-surface-500 border border-surface-300
-              {% elif res.status == 'pending' %}bg-amber-50 text-amber-700 border border-amber-200
-              {% elif res.status == 'no_show' %}bg-red-50 text-red-600 border border-red-200
-              {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            <span class="text-xs font-semibold
+                {% if res.status == 'confirmed' %} text-emerald-700 
+                {% elif res.status == 'cancelled' or res.status == 'rejected' %} text-surface-500 
+                {% elif res.status == 'pending' %} text-amber-700 
+                {% elif res.status == 'no_show' %} text-red-600 
+                {% else %} text-blue-700 {% endif %}">
               {{ res.get_status_display }}
             </span>
           </div>
@@ -52,7 +52,7 @@
         </div>
 
         {% if res.has_checkout %}
-          <div class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <div class="text-sm font-medium text-emerald-700">
             Checked out
           </div>
         {% elif res.status == 'confirmed' or res.status == 'pending' %}
@@ -68,7 +68,7 @@
           </form>
         </div>
         {% elif res.status == 'no_show' %}
-          <div class="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
+          <div class="text-sm font-medium text-red-700">
             No-show
           </div>
         {% endif %}

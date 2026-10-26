@@ -292,7 +292,10 @@ def required_deposit(user, game_copy):
         return Decimal("0.00")
     if ptype == PolicyType.CLUB_SOCIETY:
         mrp = Decimal(title.mrp)
-        deposit = max(min(mrp * Decimal("0.25"), CLUB_DEPOSIT_CAP), base)
+        if Decimal(title.club_deposit) > 0:
+            deposit = max(Decimal(title.club_deposit), base)
+        else:
+            deposit = max(min(mrp * Decimal("0.25"), CLUB_DEPOSIT_CAP), base)
         if club_has_incidents(user):
             deposit = max(deposit, mrp * Decimal("0.5"))
         return _money(deposit)
