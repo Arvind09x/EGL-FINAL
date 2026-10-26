@@ -17,9 +17,9 @@
       <div class="glass rounded-2xl overflow-hidden aspect-square flex items-center justify-center bg-surface-100">
         {% game_image_url game.name as static_img %}
         {% if static_img %}
-          <img src="{{ static_img }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+          <img src="{{ static_img }}" alt="{{ game.name }}" class="w-full h-full object-contain">
         {% elif game.image %}
-          <img src="{{ game.image.url }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+          <img src="{{ game.image.url }}" alt="{{ game.name }}" class="w-full h-full object-contain">
         {% else %}
           <span class="text-7xl opacity-10 font-black text-surface-400">?</span>
         {% endif %}
